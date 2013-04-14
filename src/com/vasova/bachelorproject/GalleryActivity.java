@@ -6,8 +6,6 @@ import java.util.ArrayList;
 import org.opencv.calib3d.StereoSGBM;
 import org.opencv.core.Mat;
 import org.opencv.highgui.Highgui;
-import org.opencv.calib3d.StereoSGBM;
-import android.opengl.GLSurfaceView;
 
 import android.os.Bundle;
 import android.os.Environment;
@@ -17,7 +15,6 @@ import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.SurfaceView;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
@@ -32,6 +29,14 @@ public class GalleryActivity extends ListActivity {
 	
 	private MenuItem processItem;
 	private MenuItem graphicsItem;
+	
+	public static Square square;
+	
+	public static Mat original1;
+	public static Mat original2;
+	
+	public static Mat disparityMap;
+	
 	/*
 	 * (non-Javadoc)
 	 * @see android.app.Activity#onCreate(android.os.Bundle)
@@ -120,69 +125,39 @@ public class GalleryActivity extends ListActivity {
         	startActivity(intent);
 		}else if (item == processItem){
 			if (MainActivity.selectedFiles.size() < 2){
-				return true;
+				//return true;
 			}
 
-			Registration r = new Registration();
-			Mat preview = Highgui.imread(MainActivity.selectedFiles.get(0));
-			/*ArrayList<int[]> overlaps = r.register(MainActivity.selectedFiles);
-			System.out.println(MainActivity.selectedFiles.get(0));
-			System.out.println("overlaps: " );
+			original1 = Highgui.imread("mnt/sdcard/Pictures/Gallery/rubberwhale1.png"); 
+			original2 = Highgui.imread("mnt/sdcard/Pictures/Gallery/rubberwhale2.png");
+			disparityMap = new Mat();
 			
-			for(int i = 0; i < overlaps.size(); i++){
-				int[] o = overlaps.get(i);
-				System.out.println("overlap: [" + o[0] +", "+ o[1] +"; " + o[2] +", "+ o[3] +"] over [" + o[4] +", "+ o[5] +"; " + o[6] +", "+ o[7] +"]");
-				if (i < MainActivity.selectedFiles.size() - 1){
-					double[] data = {255.0, 0.0, 0.0};
-					for (int x = o[2]-1; x < o[0]; x++){
-						preview.put(o[1], x, data);
-						preview.put(o[3], x, data);
-					}
-					for (int y = o[3]-1; y < o[1]; y++){
-						preview.put(y, o[0], data);
-						preview.put(y, o[2], data);
-					}
-				}
-			}
-			*/
-			GLSurfaceView view = new GLSurfaceView(this);
+			int minDisparity = 0;
+			int numOfDisparities = 16*8;
+			int SADWindowSize = 7;
 			
-			Mat M1 = Highgui.imread(MainActivity.selectedFiles.get(0)); 
-			Mat M2 = Highgui.imread(MainActivity.selectedFiles.get(1));
-			Mat Mdisp = new Mat();
-			StereoSGBM s = new StereoSGBM(1, 16*2, 3);
-			s.compute(M1, M2, Mdisp);
-    		
+			StereoSGBM s = new StereoSGBM(minDisparity, numOfDisparities, SADWindowSize, 
+					       0, 0, 0, 0, 0, 0, 0, false);
+			s.compute(original1, original2, disparityMap);
+			
 			String filename = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + 
-								"/Gallery/disparity_map.jpg";
+					"/Gallery/disparity_map.jpg";
+
+			Highgui.imwrite(filename, disparityMap);
 			
-			if(Highgui.imwrite(filename, Mdisp)){
-				System.out.println("imwriting done");
-			}
-			/*
-			AlertDialog.Builder builder1 = new AlertDialog.Builder(this);
-            builder1.setMessage("preview");
-            builder1.setCancelable(true);
-            builder1.setPositiveButton("Ok",
-                    new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int id) {
-                    dialog.cancel();
-                }
-            });
-            
-            AlertDialog alert = builder1.create();
-            alert.show();
-			*/
+			Intent intent = new Intent(this, GraphicsActivity.class);
+        	startActivity(intent);
+			
 		}
 		return true;
 
 	}
 	
+	
 	@Override
 	public void onPause()
     {
 		inForeground = false;
-        System.out.println("gallery paused");
         super.onPause();
     }
 	
@@ -190,13 +165,11 @@ public class GalleryActivity extends ListActivity {
 	public void onResume()
     {
 		inForeground = true;
-        System.out.println("gallery paused");
-        super.onPause();
+        super.onResume();
     }
 	
 	@Override
 	public void onStop(){
-		System.out.println("---------STOPPING GALLERY ACTIVITY----------------");
 		super.onStop();
 	}
 
