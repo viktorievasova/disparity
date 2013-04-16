@@ -28,14 +28,14 @@ public class GalleryActivity extends ListActivity {
 	private Adapter adapter;
 	
 	private MenuItem processItem;
-	private MenuItem graphicsItem;
-	
-	public static Square square;
-	
+	private MenuItem settingsItem;
+		
 	public static Mat original1;
 	public static Mat original2;
 	
 	public static Mat disparityMap;
+	
+	public static Registration registration = new Registration();
 	
 	/*
 	 * (non-Javadoc)
@@ -45,12 +45,10 @@ public class GalleryActivity extends ListActivity {
 	 */
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
-		
 		inForeground = true;
-		System.out.println("gallery view was created");
+		super.onCreate(savedInstanceState);
 		list_of_files = MainActivity.galleryList;
-        
-        super.onCreate(savedInstanceState);
+        this.setTitle("Gallery");
         
         registerForContextMenu(getListView());
         adapter = new Adapter(this, list_of_files);
@@ -111,26 +109,23 @@ public class GalleryActivity extends ListActivity {
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.activity_gallery, menu);
-		processItem = menu.add("process");
-		graphicsItem = menu.add("graphics");
+		//getMenuInflater().inflate(R.menu.activity_gallery, menu);
+		processItem = menu.add("Process");
+		settingsItem = menu.add("Settings");
 		return true;
 	}
 	
 	@Override 
 	public boolean onOptionsItemSelected(MenuItem item) {
 		//start the action for the selected files:
-		if (item == graphicsItem){
-			Intent intent = new Intent(this, GraphicsActivity.class);
-        	startActivity(intent);
-		}else if (item == processItem){
+		if (item == processItem){
 			if (MainActivity.selectedFiles.size() < 2){
 				//return true;
 			}
 
 			original1 = Highgui.imread("mnt/sdcard/Pictures/Gallery/rubberwhale1.png"); 
 			original2 = Highgui.imread("mnt/sdcard/Pictures/Gallery/rubberwhale2.png");
-			disparityMap = new Mat();
+			disparityMap = new Mat();//Highgui.imread("mnt/sdcard/Pictures/Gallery/disparity_map.jpg");
 			
 			int minDisparity = 0;
 			int numOfDisparities = 16*8;
@@ -148,6 +143,9 @@ public class GalleryActivity extends ListActivity {
 			Intent intent = new Intent(this, GraphicsActivity.class);
         	startActivity(intent);
 			
+		}else if (item == settingsItem){
+			Intent intent = new Intent(this, SettingsActivity.class);
+			startActivity(intent);
 		}
 		return true;
 

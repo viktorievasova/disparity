@@ -11,22 +11,37 @@ import javax.microedition.khronos.opengles.GL11;
  */
 class Square {
 	private FloatBuffer mFVertexBuffer; 
-	private ByteBuffer mColorBuffer; 
+	private FloatBuffer mColorBuffer; 
 	private ByteBuffer mIndexBuffer;
+	
+	private float k = 0.2f;
+	private float startPosition_x1 = -3.0f;
+	private float startPosition_y1 = 1.3f;
+
+	private float z = -1.0f;
+	
 	public Square() {
+		float startPosition_x2 = startPosition_x1 + k;
+		float startPosition_y2 = startPosition_y1 + k; 
+		
 		float vertices[] ={
-		    -1.0f, -1.0f,
-		    1.0f, -1.0f,
-		    -1.0f,  1.0f,
-		    1.0f,  1.0f,
+		    startPosition_x1, startPosition_y1, z, 
+		    startPosition_x2, startPosition_y1, z, 
+		    startPosition_x1, startPosition_y2, z, 
+		    startPosition_x2, startPosition_y2, z
 
 		};
-		byte maxColor=(byte)255;
-		byte colors[] = {
-		    maxColor,maxColor,0, maxColor,
-		    0,maxColor,maxColor,maxColor,
-		    0, 0, 0, maxColor,
-		    maxColor, 0, maxColor, maxColor, 
+
+		float color1 = (float)(Math.random()*255/100);
+		float color2 = (float)(Math.random()*255/100);
+		float color3 = (float)(Math.random()*255/100);
+		
+		System.out.println("colors " + color1 + "; " + color2 + ";" + color3);
+		float colors[] = {
+		    color1, color2, color3, 1,
+		    color1, color2, color3, 1,
+		    color1, color2, color3, 1,
+		    color1, color2, color3, 1 
 		};
 		
 		byte indices[] = {
@@ -41,7 +56,8 @@ class Square {
 		mFVertexBuffer.put(vertices);
 		mFVertexBuffer.position(0);
 		
-		mColorBuffer = ByteBuffer.allocateDirect(colors.length); 
+		mColorBuffer = ByteBuffer.allocateDirect(colors.length * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
+		 
 		mColorBuffer.put(colors);
 		mColorBuffer.position(0);
 		
@@ -50,16 +66,40 @@ class Square {
 		mIndexBuffer.position(0);
 	}
 	
+	public void setConstantValue(float c){
+		this.k = c;
+		float startPosition_x2 = startPosition_x1 + k;
+		float startPosition_y2 = startPosition_y1 + k; 
+		
+		mFVertexBuffer.put(0, startPosition_x1);
+		mFVertexBuffer.put(1, startPosition_y1);
+		
+		mFVertexBuffer.put(3, startPosition_x2);
+		mFVertexBuffer.put(4, startPosition_y1);
+		
+		mFVertexBuffer.put(6, startPosition_x1);
+		mFVertexBuffer.put(7, startPosition_y2);
+		
+		mFVertexBuffer.put(9, startPosition_x2);
+		mFVertexBuffer.put(10, startPosition_y2);
+	}
+	
+	public void setColor(double[] color){
+		double r = color[0]; 
+		double g = color[1];
+		double b = color[2];
+		for (int i = 0; i < 4; i++){
+			mColorBuffer.put(0+(i*4), ((float)b/255.0f));
+			mColorBuffer.put(1+(i*4), ((float)g/255.0f));
+			mColorBuffer.put(2+(i*4), ((float)r/255.0f));
+		}
+	}
+	
 	public void draw(GL10 gl){
 		gl.glFrontFace(GL11.GL_CW);
-		/*gl.glBegin(gl.GL_POLYGON);
-		gl.glVertex3f(0, 0, 0);
-		gl.glVertex3f(1, 0, 0);
-		gl.glVertex3f(0, 0, 0);
-		gl.glVertex3f(1, 0, 0);
-		gl.glEnd(); */
-		gl.glVertexPointer(2, GL11.GL_FLOAT, 0, mFVertexBuffer);
-		gl.glColorPointer(4, GL11.GL_UNSIGNED_BYTE, 0, mColorBuffer); 
+		
+		gl.glVertexPointer(3, GL11.GL_FLOAT, 0, mFVertexBuffer);
+		gl.glColorPointer(4, GL11.GL_FLOAT, 0, mColorBuffer); 
 		gl.glDrawElements(GL11.GL_TRIANGLES, 6, GL11.GL_UNSIGNED_BYTE, mIndexBuffer);
 		gl.glFrontFace(GL11.GL_CCW);
 	}

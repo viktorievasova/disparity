@@ -13,8 +13,14 @@
     </style>
 
     <!-- Application theme. -->
-    <style name="AppTheme" parent="AppBaseTheme">
-        <!-- All customizations that are NOT specific to a particular API-level can go here. -->
+    <style name="AppTheme" parent="android:Theme.Light">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@color/light_gray</item>
+        <item name="android:listViewStyle">@style/MyListView</item>
+    </style>
+
+    <style name="MyListView" parent="@android:style/Widget.ListView">
+<!--        <item name="android:listSelector"></item> -->
     </style>
 
 </resources>

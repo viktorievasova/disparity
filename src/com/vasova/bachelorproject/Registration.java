@@ -1,19 +1,12 @@
 package com.vasova.bachelorproject;
 
-import java.io.File;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.Range;
 import org.opencv.core.Size;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
-
-import android.os.Environment;
-import android.util.Log;
 
 public class Registration {
 	
@@ -25,6 +18,25 @@ public class Registration {
 	public int SCALE160 = 160;
 	public int SCALE320 = 320;
 	
+	public static String mi_string = "mutual information";
+	public static String soad_string = "sum_of_absolute_differences";
+	
+	private boolean sum_of_absolute_differences;
+	private boolean mutual_information;
+	
+	public Registration(){
+		//sum_of_absolute_differences is true by default
+		sum_of_absolute_differences = true;
+				
+	}
+	
+	public boolean isSetSumOfAbsoluteDiff(){
+		return this.sum_of_absolute_differences;
+	}
+	
+	public boolean isSetMutualInformation(){
+		return this.mutual_information;
+	}
 	
 	public ArrayList<int[]> register(ArrayList<String> pictures){
 		int[] scales = {SCALE80, SCALE160};
@@ -44,6 +56,16 @@ public class Registration {
 			}
 		}
 		return overlaps;
+	}
+	
+	public void setRegistrationParametr(String s){
+		if (s.equals(mi_string)){
+			mutual_information = true;
+			sum_of_absolute_differences = false;
+		}else if (s.equals(soad_string)){
+			sum_of_absolute_differences = true;
+			mutual_information = false;
+		}
 	}
 	
 	public Mat createBrightnessMat(Mat mat){
@@ -274,7 +296,7 @@ public class Registration {
 				double[] D = integralImage.get(j*d - d, i*d - d);
 				
 				double[] v = {A[0]-B[0]-C[0]+D[0], A[1]-B[1]-C[1]+D[1], A[2]-B[2]-C[2]+D[2]};
-				double b = getBrightness(v);// /3;
+				//double b = getBrightness(v);// /3;
 				//double b = getBrightness(integralImage.get((j+1)*d, (i+1)*d))/((i+1)*(j+1));
 				double k = (d-1)*(d-1) * 4;
 				float [] data = {(float)(v[0]/k), (float)(v[1]/k), (float)(v[2]/k)};// {b};

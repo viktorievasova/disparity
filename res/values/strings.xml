@@ -7,5 +7,8 @@
     <string name="title_activity_gallery">GalleryActivity</string>
     <string name="title_activity_open_gl_graphics">OpenGL_graphics</string>
     <string name="title_activity_graphics">GraphicsActivity</string>
-
+    <string name="title_activity_settings">SettingsActivity</string>
+    <string name="sum_of_absolute_differences">Sum of absolute differences</string>
+	<string name="mutual_information">Mutual information</string>
+    <string name="confirm">Confirm</string>
 </resources>

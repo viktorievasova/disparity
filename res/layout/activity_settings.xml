@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent">
+    <CheckBox android:id="@+id/checkbox_sum_of_absolute_differences"
+        android:textSize="8pt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/sum_of_absolute_differences"
+        android:onClick="onCheckboxClicked"/>
+    <CheckBox android:id="@+id/checkbox_mutual_information"
+        android:textSize="8pt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/mutual_information"
+        android:onClick="onCheckboxClicked"/>
+     <Button
+        android:id="@+id/confirmButton"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20pt"
+        android:text="@string/confirm" />
+</LinearLayout>

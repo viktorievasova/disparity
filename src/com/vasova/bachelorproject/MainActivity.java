@@ -161,8 +161,10 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
     	
     	if (takenPicture != null){
     		try{
-    			System.out.println("taking picture");
-    	    	
+    			//conversion bgr->rgb
+    			Mat pictureToWrite = new Mat();
+    			Imgproc.cvtColor(takenPicture, pictureToWrite, Imgproc.COLOR_BGR2BGRA);
+    			
     			/*generovani cesty k souboru, pripadne vytvoreni souboru, pokud neexistuje*/
     			String dirName = "Gallery";
 	    		String dirPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/" + dirName;
@@ -177,13 +179,12 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 	    		
 	    		/*vytvoreni nazvu pro ukladany soubor a zapsani souboru*/
 	    		String timeOfTakingPicture = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-	    		Mat m = takenPicture;
 	    		String filePath = dirPath + "/img" + timeOfTakingPicture + ".jpg";
-	    		Highgui.imwrite(filePath, m);
+	    		Highgui.imwrite(filePath, pictureToWrite);
 	    		galleryList.add(filePath);
 	    		 
 	    		System.out.println("picture was taken with the path: " + filePath);
-	    		System.out.println("cesta k souboru: " + filePath + " --- m.tostring: " + m.toString());
+	    		System.out.println("cesta k souboru: " + filePath + " --- m.tostring: " + pictureToWrite.toString());
     		}catch(Exception e){
     			System.out.println("an error occured while writting the file. " + "exception:  " + e);
     		}
@@ -262,9 +263,9 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         Log.i(TAG, "called onCreateOptionsMenu");
-        mItemPreviewRGBA = menu.add("Preview RGBA");
-        mItemPreviewGray = menu.add("Preview GRAY");
-        mItemPreviewCanny = menu.add("Canny");
+        //mItemPreviewRGBA = menu.add("Preview RGBA");
+        //mItemPreviewGray = menu.add("Preview GRAY");
+        //mItemPreviewCanny = menu.add("Canny");
         mItemGallery = menu.add("Gallery");
         return true;
     }

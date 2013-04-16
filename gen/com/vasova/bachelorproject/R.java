@@ -36,38 +36,54 @@ containing a value of this type.
          */
         public static final int show_fps=0x7f010000;
     }
+    public static final class color {
+        public static final int dark_gray=0x7f050001;
+        public static final int gray=0x7f050003;
+        public static final int light_gray=0x7f050004;
+        public static final int red=0x7f050000;
+        public static final int translucent_red=0x7f050002;
+    }
     public static final class drawable {
         public static final int ic_launcher=0x7f020000;
     }
     public static final class id {
-        public static final int a_row=0x7f040004;
+        public static final int a_row=0x7f040007;
         public static final int any=0x7f040000;
         public static final int back=0x7f040001;
         public static final int camera_view=0x7f040003;
+        public static final int checkbox_mutual_information=0x7f040005;
+        public static final int checkbox_sum_of_absolute_differences=0x7f040004;
+        public static final int confirmButton=0x7f040006;
         public static final int front=0x7f040002;
-        public static final int image_view=0x7f040005;
-        public static final int menu_settings=0x7f040007;
-        public static final int path_field=0x7f040006;
+        public static final int image_view=0x7f040008;
+        public static final int menu_settings=0x7f04000a;
+        public static final int path_field=0x7f040009;
     }
     public static final class layout {
         public static final int activity_gallery=0x7f030000;
         public static final int activity_graphics=0x7f030001;
         public static final int activity_main=0x7f030002;
-        public static final int list_row=0x7f030003;
+        public static final int activity_settings=0x7f030003;
+        public static final int list_row=0x7f030004;
     }
     public static final class menu {
-        public static final int activity_gallery=0x7f070000;
-        public static final int activity_graphics=0x7f070001;
-        public static final int activity_main=0x7f070002;
-        public static final int activity_open_gl_graphics=0x7f070003;
+        public static final int activity_gallery=0x7f080000;
+        public static final int activity_graphics=0x7f080001;
+        public static final int activity_main=0x7f080002;
+        public static final int activity_open_gl_graphics=0x7f080003;
+        public static final int activity_settings=0x7f080004;
     }
     public static final class string {
-        public static final int app_name=0x7f050000;
-        public static final int hello_world=0x7f050002;
-        public static final int menu_settings=0x7f050001;
-        public static final int title_activity_gallery=0x7f050003;
-        public static final int title_activity_graphics=0x7f050005;
-        public static final int title_activity_open_gl_graphics=0x7f050004;
+        public static final int app_name=0x7f060000;
+        public static final int confirm=0x7f060009;
+        public static final int hello_world=0x7f060002;
+        public static final int menu_settings=0x7f060001;
+        public static final int mutual_information=0x7f060008;
+        public static final int sum_of_absolute_differences=0x7f060007;
+        public static final int title_activity_gallery=0x7f060003;
+        public static final int title_activity_graphics=0x7f060005;
+        public static final int title_activity_open_gl_graphics=0x7f060004;
+        public static final int title_activity_settings=0x7f060006;
     }
     public static final class style {
         /** 
@@ -85,11 +101,13 @@ containing a value of this type.
     
  API 11 theme customizations can go here. 
          */
-        public static final int AppBaseTheme=0x7f060000;
+        public static final int AppBaseTheme=0x7f070000;
         /**  Application theme. 
- All customizations that are NOT specific to a particular API-level can go here. 
          */
-        public static final int AppTheme=0x7f060001;
+        public static final int AppTheme=0x7f070001;
+        /**         <item name="android:listSelector"></item> 
+         */
+        public static final int MyListView=0x7f070002;
     }
     public static final class styleable {
         /** Attributes that can be used with a CameraBridgeViewBase.

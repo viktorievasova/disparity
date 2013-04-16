@@ -7,6 +7,7 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.pm.ConfigurationInfo;
 import android.view.Menu;
+import android.view.WindowManager;
 
 public class GraphicsActivity extends Activity {
 
@@ -14,12 +15,12 @@ public class GraphicsActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		/*getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
 		WindowManager.LayoutParams.FLAG_FULLSCREEN); 
 		glView = new GLSurfaceView(this); 
-		glView.setRenderer(new Graphics_Renderer(true)); 
+		glView.setRenderer(new Graphics_Renderer(GalleryActivity.disparityMap, GalleryActivity.original1)); 
 		setContentView(glView);
-		*/
+		/*
 		glView = new GLSurfaceView(this);
 
 		// Check if the system supports OpenGL ES 2.0.
@@ -41,7 +42,7 @@ public class GraphicsActivity extends Activity {
 			// renderer if you wanted to support both ES 1 and ES 2.
 			return;
 		}
-
+	*/
 		setContentView(glView);
 
 	}
