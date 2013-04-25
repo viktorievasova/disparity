@@ -1,4 +1,4 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent" >
@@ -7,5 +7,38 @@
         android:id="@+id/camera_view"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent" />
+    
+    <Button
+        android:id="@+id/captureButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="0dp"
+        android:layout_centerVertical="true"
+        android:onClick="callTakePicture"
+        android:text="@string/capture" />
+    
+     <Button
+        android:id="@+id/startCapturingButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="0dp"
+        android:layout_centerVertical="true"
+        android:onClick="start_stopAutoCapturing"
+        android:text="@string/startCapturing"
+        android:visibility="invisible"/>
           
-</LinearLayout>
+    <ToggleButton
+        android:id="@+id/toggleAutoCaptureButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textOn="AutoCapture on"
+    	android:textOff="AutoCapture off"
+    
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        
+        android:onClick="autoCaptureChanged"/>
+          
+</RelativeLayout>

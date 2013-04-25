@@ -38,6 +38,10 @@
             android:name="com.vasova.bachelorproject.SettingsActivity"
             android:label="@string/title_activity_settings" >
         </activity>
+        <activity
+            android:name="com.vasova.bachelorproject.LessonSevenActivity"
+            android:label="@string/title_activity_lesson_seven" >
+        </activity>
     </application>
 
     <uses-permission android:name="android.permission.CAMERA" />

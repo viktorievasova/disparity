@@ -2,13 +2,21 @@ package com.vasova.bachelorproject;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 
 import org.opencv.calib3d.StereoSGBM;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfKeyPoint;
+import org.opencv.core.Scalar;
+import org.opencv.features2d.FeatureDetector;
+import org.opencv.features2d.Features2d;
 import org.opencv.highgui.Highgui;
+import org.opencv.imgproc.Imgproc;
 
 import android.os.Bundle;
 import android.os.Environment;
+import android.renderscript.Type;
 import android.app.ListActivity;
 import android.content.Intent;
 import android.view.ContextMenu;
@@ -34,8 +42,9 @@ public class GalleryActivity extends ListActivity {
 	public static Mat original2;
 	
 	public static Mat disparityMap;
+	public static Mat result;
 	
-	public static Registration registration = new Registration();
+	public static Registration registration;
 	
 	/*
 	 * (non-Javadoc)
@@ -53,7 +62,7 @@ public class GalleryActivity extends ListActivity {
         registerForContextMenu(getListView());
         adapter = new Adapter(this, list_of_files);
         setListAdapter(adapter);
-        
+        registration = new Registration();
 	}
 	
 	@Override
@@ -123,22 +132,42 @@ public class GalleryActivity extends ListActivity {
 				//return true;
 			}
 
-			original1 = Highgui.imread("mnt/sdcard/Pictures/Gallery/rubberwhale1.png"); 
-			original2 = Highgui.imread("mnt/sdcard/Pictures/Gallery/rubberwhale2.png");
-			disparityMap = new Mat();//Highgui.imread("mnt/sdcard/Pictures/Gallery/disparity_map.jpg");
+			//original2 = Highgui.imread("mnt/sdcard/Pictures/Gallery/mmsL.jpg"); 
+			//original1 = Highgui.imread("mnt/sdcard/Pictures/Gallery/mmsM.jpg");
+
+			original1 = Highgui.imread("mnt/sdcard/Pictures/Gallery/tsucuba_left.png"); 
+			original2 = Highgui.imread("mnt/sdcard/Pictures/Gallery/tsucuba_right.png");
+			/*
+			original2 = Highgui.imread(MainActivity.selectedFiles.get(0)); 
+			original2 = Highgui.imread(MainActivity.selectedFiles.get(1));
+			*/
 			
+			Mat[] images = {original1, original2};
+			registration.setDataSet(images);
+			
+			disparityMap = new Mat();			
+			int channels = 3;
 			int minDisparity = 0;
-			int numOfDisparities = 16*8;
-			int SADWindowSize = 7;
+			int numOfDisparities = ((original1.width()/8) + 15) & -16;
+			int SADWindowSize = 3;
+			int P1 =  8*channels*SADWindowSize*SADWindowSize;
+			int P2 = 32*channels*SADWindowSize*SADWindowSize;
+			int uniquenessRatio = 10;
+			int disp12MaxDiff = 1;
+			int speckleWindowSize = 100;
+			int speckleRange = 32;
+			int preFilterCap = 63;
 			
 			StereoSGBM s = new StereoSGBM(minDisparity, numOfDisparities, SADWindowSize, 
-					       0, 0, 0, 0, 0, 0, 0, false);
-			s.compute(original1, original2, disparityMap);
+				       P1, P2, disp12MaxDiff, preFilterCap, uniquenessRatio,speckleWindowSize, speckleRange, false);
 			
+			//s.compute(original1, original2, disparityMap);
+			//zapis obrazku:
 			String filename = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + 
-					"/Gallery/disparity_map.jpg";
-
-			Highgui.imwrite(filename, disparityMap);
+					"/Gallery/diparityMap.jpg";
+			result = new Mat();
+			disparityMap.convertTo(result, CvType.CV_8U, 255/(numOfDisparities*16.0));
+			//Highgui.imwrite(filename, result);
 			
 			Intent intent = new Intent(this, GraphicsActivity.class);
         	startActivity(intent);
@@ -148,7 +177,6 @@ public class GalleryActivity extends ListActivity {
 			startActivity(intent);
 		}
 		return true;
-
 	}
 	
 	

@@ -1,16 +1,44 @@
 package com.vasova.bachelorproject;
 
+import org.opencv.core.Mat;
+
 import android.opengl.GLSurfaceView;
+
 import android.os.Bundle;
 import android.app.Activity;
-import android.app.ActivityManager;
-import android.content.Context;
-import android.content.pm.ConfigurationInfo;
-import android.view.Menu;
-import android.view.WindowManager;
+import android.content.pm.ActivityInfo;
 
 public class GraphicsActivity extends Activity {
 
+	private GLSurfaceView mGLView;
+
+	 /** Called when the activity is first created. */
+    @Override
+    public void onCreate(Bundle savedInstanceState)
+    {
+        super.onCreate(savedInstanceState);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        mGLView = new Graphics_GLSurfaceView(this, GalleryActivity.original1, GalleryActivity.result);
+        setContentView(mGLView);
+    }
+
+    @Override
+    protected void onPause()
+    {
+        super.onPause();
+        mGLView.onPause();
+    }
+
+    @Override
+    protected void onResume()
+    {
+        super.onResume();
+        mGLView.onResume();
+    }
+}
+
+	
+	/*
 	private GLSurfaceView glView;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -20,31 +48,6 @@ public class GraphicsActivity extends Activity {
 		glView = new GLSurfaceView(this); 
 		glView.setRenderer(new Graphics_Renderer(GalleryActivity.disparityMap, GalleryActivity.original1)); 
 		setContentView(glView);
-		/*
-		glView = new GLSurfaceView(this);
-
-		// Check if the system supports OpenGL ES 2.0.
-		final ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-		final ConfigurationInfo configurationInfo = activityManager.getDeviceConfigurationInfo();
-		final boolean supportsEs2 = configurationInfo.reqGlEsVersion >= 0x20000;
-
-		if (supportsEs2) 
-		{
-			// Request an OpenGL ES 2.0 compatible context.
-			glView.setEGLContextClientVersion(2);
-
-			// Set the renderer to our demo renderer, defined below.
-			glView.setRenderer(new Graphics_Renderer(GalleryActivity.disparityMap, GalleryActivity.original1));
-		} 
-		else 
-		{
-			// This is where you could create an OpenGL ES 1.x compatible
-			// renderer if you wanted to support both ES 1 and ES 2.
-			return;
-		}
-	*/
-		setContentView(glView);
-
 	}
 
 	@Override
@@ -69,3 +72,4 @@ public class GraphicsActivity extends Activity {
     }
 
 }
+*/

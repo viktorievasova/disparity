@@ -24,6 +24,7 @@ public class Adapter extends ArrayAdapter<String>{
 		super(context, R.layout.activity_gallery, values);
 		this.context = context;
 		this.data = values;
+		
 	}
  
 	/*
@@ -54,8 +55,9 @@ public class Adapter extends ArrayAdapter<String>{
 	        	txtView.setChecked(!txtView.isChecked());
 	        }
 	    });
+		
 		String s = data.get(position);
-		textView.setText(s);
+		//textView.setText(s);
 		if (MainActivity.selectedFiles.contains(s)){
 			textView.setChecked(true);
 		}

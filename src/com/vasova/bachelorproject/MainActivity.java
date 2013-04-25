@@ -18,6 +18,7 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.highgui.Highgui;
@@ -37,7 +38,11 @@ import android.content.Intent;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.Toast;
+import android.widget.ToggleButton;
 
 public class MainActivity extends Activity implements CvCameraViewListener, SensorEventListener{
 
@@ -51,8 +56,6 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 
     private static int           viewMode       = VIEW_MODE_RGBA;
     private MenuItem             mItemPreviewRGBA;
-    private MenuItem             mItemPreviewGray;
-    private MenuItem             mItemPreviewCanny;
     private MenuItem			 mItemGallery;
     private Mat                  mRgba;
     private Mat                  mIntermediateMat;
@@ -72,6 +75,11 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
     public static ArrayList<String> selectedFiles;
 	public String selectedFilesFileName = "selectedData";
     
+	private boolean autoCaptureON = false;
+	private boolean autoCapturingStarted = false;
+	private SensorManager sensorManager;
+	
+	
     public MainActivity() {
         Log.i(TAG, "Instantiated new " + this.getClass());
     }
@@ -88,40 +96,51 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
                 default:
                 {
                     super.onManagerConnected(status);
-                    
                 } break;
             }
         }
     };
     
-    
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		Log.i(TAG, "called onCreate");
 		inBackground = false;
-        /*inicializace noveho seznamu vyfocenych*/ 
+        /*inicializace noveho seznamu vyfocenych obrazku*/ 
 		galleryList = new ArrayList<String>();
         readData();
-        
         super.onCreate(savedInstanceState);
-        //getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         /*nastaveni vytvoreneho layoutu pro MainActivity*/
         setContentView(R.layout.activity_main);
         
         /*osetreni kamery*/
         mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.camera_view);
         mOpenCvCameraView.setCvCameraViewListener(this);
-        
-        
-        /*vytvoreni SensorManageru pro typ akcelerometru k detekci pohybu zarizeni*/
-        SensorManager sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
-        sensorManager.registerListener(this, 
-        								sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), 
-        								SensorManager.SENSOR_DELAY_NORMAL);
+                
 	}
 
-	/*zmeni-li se poloha zarizeni, anuluje se bezici timer, spusti a naplanuje se novy*/
+    public void onAccuracyChanged(Sensor sensor, int accuracy){
+    	System.out.println("Accuracy changed to " + accuracy);
+    }
+    
+    public void start_stopAutoCapturing(View view){
+    	Button autoCaptureButton = (Button)findViewById(R.id.startCapturingButton);
+    	if (!autoCapturingStarted){
+	    	/*vytvoreni SensorManageru pro typ akcelerometru k detekci pohybu zarizeni*/
+	        sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+	        sensorManager.registerListener(this, 
+	        								sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), 
+	        								SensorManager.SENSOR_DELAY_NORMAL);
+	        autoCaptureButton.setText("Stop Capturing");
+	        autoCapturingStarted = true;
+    	}else{
+    		//sensorManager = null;
+    		autoCaptureButton.setText("Start Capturing");
+    		autoCapturingStarted = false;
+    	}
+    }
+    
+    /*zmeni-li se poloha zarizeni, anuluje se bezici timer, spusti a naplanuje se novy*/
 	public void onSensorChanged(SensorEvent event){
     	//System.out.println("Got a sensor event of type " + event.sensor.getType());
     	if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
@@ -141,15 +160,13 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
     				System.out.println("timer run()");
     				t.cancel();
     				t = null;
-    				takePicture();
     			}
     		};
     		t.schedule(task, d);
     	}
     }
-
-    public void onAccuracyChanged(Sensor sensor, int accuracy){
-    	System.out.println("Accuracy changed to " + accuracy);
+    public void callTakePicture(View view){
+    	takePicture();
     }
     
     /*metoda, ktera snima obrazek*/
@@ -180,14 +197,35 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 	    		/*vytvoreni nazvu pro ukladany soubor a zapsani souboru*/
 	    		String timeOfTakingPicture = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 	    		String filePath = dirPath + "/img" + timeOfTakingPicture + ".jpg";
-	    		Highgui.imwrite(filePath, pictureToWrite);
-	    		galleryList.add(filePath);
-	    		 
-	    		System.out.println("picture was taken with the path: " + filePath);
-	    		System.out.println("cesta k souboru: " + filePath + " --- m.tostring: " + pictureToWrite.toString());
+	    		if (Highgui.imwrite(filePath, pictureToWrite)){
+		    		addImgToList(filePath);
+	                if(!autoCapturingStarted){
+		    			String message = "Your picture was saved";
+			    		Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+		    		}
+	    		}
     		}catch(Exception e){
     			System.out.println("an error occured while writting the file. " + "exception:  " + e);
     		}
+    	}
+    }
+    
+    
+    public void autoCaptureChanged(View view){
+    	ToggleButton autoCaptureButton = (ToggleButton)view;
+    	this.autoCaptureON = autoCaptureButton.isChecked();
+    	Button captureButton = (Button)findViewById(R.id.captureButton);
+    	Button startCapturingButton = (Button)findViewById(R.id.startCapturingButton);
+    	if (autoCaptureON){
+    		captureButton.setEnabled(false);
+    		captureButton.setVisibility(Button.INVISIBLE);
+    		startCapturingButton.setEnabled(true);
+    		startCapturingButton.setVisibility(Button.VISIBLE);
+    	}else{
+    		captureButton.setEnabled(true);
+    		captureButton.setVisibility(Button.VISIBLE);
+    		startCapturingButton.setEnabled(false);
+    		startCapturingButton.setVisibility(Button.INVISIBLE);
     	}
     }
     
@@ -278,22 +316,22 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
             mOpenCvCameraView.SetCaptureFormat(Highgui.CV_CAP_ANDROID_COLOR_FRAME_RGBA);
             viewMode = VIEW_MODE_RGBA;
         }
-        else if (item == mItemPreviewGray)
-        {
-            mOpenCvCameraView.SetCaptureFormat(Highgui.CV_CAP_ANDROID_GREY_FRAME);
-            viewMode = VIEW_MODE_GRAY;
-        }
-        else if (item == mItemPreviewCanny)
-        {
-            mOpenCvCameraView.SetCaptureFormat(Highgui.CV_CAP_ANDROID_GREY_FRAME);
-            viewMode = VIEW_MODE_CANNY;
-        }
         else if (item == mItemGallery){
         	Intent intent = new Intent(this, GalleryActivity.class);
         	startActivity(intent);
         }
 
         return true;
+    }
+    
+    
+    private void addImgToList(String imgPath){
+    	ArrayList<String> tmpList = new ArrayList<String>();
+    	tmpList.add(imgPath);
+    	for (int i = 0; i < galleryList.size(); i++){
+    		tmpList.add(galleryList.get(i));
+    	}
+    	galleryList = tmpList;
     }
     
     private void writeData(){
@@ -314,13 +352,11 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 			}
 			
 			/*
-			line = "mnt/sdcard/Pictures/Gallery/obj1.jpg" + "\n";
-			bffw.write(line);
-			*/
 			for (int i = 0; i < selectedFiles.size(); i++){
 				line = selectedFiles.get(i) + "\n";
-				//bffwSelected.write(line);
+				bffwSelected.write(line);
 			}
+			*/
 			bffw.close();
 			fos.close();
 			bffwSelected.close();

@@ -1,12 +1,26 @@
 package com.vasova.bachelorproject;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Vector;
+import java.util.regex.Matcher;
 
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfDMatch;
+import org.opencv.core.MatOfKeyPoint;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
+import org.opencv.features2d.DMatch;
+import org.opencv.features2d.DescriptorExtractor;
+import org.opencv.features2d.DescriptorMatcher;
+import org.opencv.features2d.FeatureDetector;
+import org.opencv.features2d.Features2d;
+import org.opencv.features2d.KeyPoint;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
+
+import android.graphics.Bitmap;
 
 public class Registration {
 	
@@ -24,11 +38,79 @@ public class Registration {
 	private boolean sum_of_absolute_differences;
 	private boolean mutual_information;
 	
+	private MatOfKeyPoint[] keyPoints;
+	private MatOfDMatch[] matches;
+	private Mat[] imagesWithKeyPoints;
+	private Mat[] descriptors;
+	private Mat[] originalImages;
+	
 	public Registration(){
 		//sum_of_absolute_differences is true by default
-		sum_of_absolute_differences = true;
-				
+		sum_of_absolute_differences = true;		
 	}
+	
+	public void setDataSet(Mat[] images){
+		this.originalImages = images;  
+		register();
+	}
+	public void register(){
+		findKeyPoints();
+		matchKeyPoints();
+	}
+	
+	private void findKeyPoints(){
+		FeatureDetector surf = FeatureDetector.create(FeatureDetector.STAR);
+		DescriptorExtractor descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);
+		
+		keyPoints = new MatOfKeyPoint[originalImages.length];
+		imagesWithKeyPoints = new Mat[originalImages.length];
+		descriptors = new Mat[originalImages.length];
+		
+		Mat image;
+		Mat detected_features = new Mat();
+		Mat rgb = new Mat();
+		MatOfKeyPoint current_keypoints;
+		Mat current_descriptors = new Mat();
+		
+		for (int i = 0; i < originalImages.length; i++){
+			current_keypoints = new MatOfKeyPoint();
+			image = originalImages[i];
+			surf.detect(image, current_keypoints);
+			
+			Imgproc.cvtColor(image, rgb, Imgproc.COLOR_RGBA2RGB);	  
+			Features2d.drawKeypoints(rgb, current_keypoints, rgb);
+			Imgproc.cvtColor(rgb, detected_features, Imgproc.COLOR_RGB2RGBA);
+			
+			descriptor.compute(image, current_keypoints, current_descriptors);
+			
+			descriptors[i] = current_descriptors;
+			keyPoints[i] = current_keypoints;
+			imagesWithKeyPoints[i] = detected_features;
+		}
+	}
+	
+	private void matchKeyPoints(){
+		DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE);
+		int n = originalImages.length;
+		int numOfPairs = (n*(n-1))/2;
+		int index = 0;
+		matches = new MatOfDMatch[numOfPairs];
+		for(int i = 0; i < originalImages.length; i++){
+			for (int j = i; j < originalImages.length - 1; j++){
+				Mat descriptors1 = descriptors[i];
+				Mat descriptors2 = descriptors[j];
+				MatOfDMatch current_matches = new MatOfDMatch();
+				matcher.match(descriptors1, descriptors2, current_matches);
+				System.out.println(index);
+				matches[index++] = current_matches;
+			}
+		}
+	}
+	
+	public MatOfKeyPoint[] getKeyPoints(){
+		return keyPoints;
+	}
+	
 	
 	public boolean isSetSumOfAbsoluteDiff(){
 		return this.sum_of_absolute_differences;
@@ -37,10 +119,17 @@ public class Registration {
 	public boolean isSetMutualInformation(){
 		return this.mutual_information;
 	}
-	
+	/*
 	public ArrayList<int[]> register(ArrayList<String> pictures){
 		int[] scales = {SCALE80, SCALE160};
 		
+		if (this.sum_of_absolute_differences){
+			
+			
+		}else if (this.mutual_information){
+			
+			
+		}
 		ArrayList<int[]> overlaps = new ArrayList<int[]>();
 		for (int i = 0; i < pictures.size(); i++){
 			Mat img = Highgui.imread(pictures.get(i));
@@ -57,7 +146,7 @@ public class Registration {
 		}
 		return overlaps;
 	}
-	
+	*/
 	public void setRegistrationParametr(String s){
 		if (s.equals(mi_string)){
 			mutual_information = true;

@@ -9,6 +9,10 @@
     <string name="title_activity_graphics">GraphicsActivity</string>
     <string name="title_activity_settings">SettingsActivity</string>
     <string name="sum_of_absolute_differences">Sum of absolute differences</string>
-	<string name="mutual_information">Mutual information</string>
+    <string name="mutual_information">Mutual information</string>
     <string name="confirm">Confirm</string>
+    <string name="capture">Capture</string>
+    <string name="startCapturing">Start Capturing</string>
+    <string name="title_activity_lesson_seven">LessonSevenActivity</string>
+
 </resources>
