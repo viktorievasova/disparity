@@ -142,7 +142,9 @@ public class GalleryActivity extends ListActivity {
 			original2 = Highgui.imread(MainActivity.selectedFiles.get(1));
 			*/
 			
-			Mat[] images = {original1, original2};
+			ArrayList<Mat> images = new ArrayList<Mat>();
+			images.add(original1);
+			images.add(original2);
 			registration.setDataSet(images);
 			
 			disparityMap = new Mat();			
@@ -161,7 +163,7 @@ public class GalleryActivity extends ListActivity {
 			StereoSGBM s = new StereoSGBM(minDisparity, numOfDisparities, SADWindowSize, 
 				       P1, P2, disp12MaxDiff, preFilterCap, uniquenessRatio,speckleWindowSize, speckleRange, false);
 			
-			//s.compute(original1, original2, disparityMap);
+			s.compute(original1, original2, disparityMap);
 			//zapis obrazku:
 			String filename = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + 
 					"/Gallery/diparityMap.jpg";
@@ -179,6 +181,13 @@ public class GalleryActivity extends ListActivity {
 		return true;
 	}
 	
+	public static Mat getOriginal(){
+		return original1;
+	}
+	
+	public static Mat getDisparity(){
+		return disparityMap;
+	}
 	
 	@Override
 	public void onPause()
