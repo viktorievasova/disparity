@@ -20,6 +20,12 @@ public class Graphics_Renderer implements  GLSurfaceView.Renderer{
 		this.mesh = new MeshModel(origImg, dispImg);
 	}
 	
+	public void releaseMeshBuffers(){
+		if (this.mesh != null){
+			this.mesh.releaseBuffers();
+		}
+	}
+	
 	@Override
 	public void onDrawFrame(GL10 gl) {
 	        

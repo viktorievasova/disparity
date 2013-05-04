@@ -6,76 +6,62 @@ import java.util.ArrayList;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.view.LayoutInflater;
+import android.graphics.Color;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.CheckedTextView;
+import android.widget.BaseAdapter;
 import android.widget.ImageView;
+import android.widget.GridView;
 
-
-public class Adapter extends ArrayAdapter<String>{
-
-	private final Context context;
-	private final ArrayList<String> data;
- 
-	//contructor is defined by Context and ArrayList of Strings
-	public Adapter(Context context, ArrayList<String> values) {
-		super(context, R.layout.activity_gallery, values);
-		this.context = context;
-		this.data = values;
-		
-	}
- 
-	/*
-	 * (non-Javadoc)
-	 * @see android.widget.ArrayAdapter#getView(int, android.view.View, android.view.ViewGroup)
-	 * Overrided method gets a View that displays the data at the specified position in the data set.
-	 */
-	@Override
-	public View getView(int position, View convertView, ViewGroup parent) {
-		// TODO Auto-generated method stub
-		LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-		View view = inflater.inflate(R.layout.list_row, parent, false);
-		
-		//data for CheckedTextView and ImageView are set:
-		
-		CheckedTextView textView = (CheckedTextView) view.findViewById(R.id.path_field);
-		textView.setOnClickListener(new View.OnClickListener() {
-	        public void onClick(View v){
-	        	CheckedTextView txtView = (CheckedTextView)v;
-	            if (txtView.isChecked()){
-	            	//we have to uncheck row --> remove filepath from the list of checked files
-	            	MainActivity.selectedFiles.remove((String)txtView.getText());
-	            }else{
-	            	//otherwise add filepath of selected file to the list
-	            	MainActivity.selectedFiles.add((String)txtView.getText());
-	            }
-	            //txtView.toggle();
-	        	txtView.setChecked(!txtView.isChecked());
-	        }
-	    });
-		
-		String s = data.get(position);
-		//textView.setText(s);
-		if (MainActivity.selectedFiles.contains(s)){
-			textView.setChecked(true);
-		}
- 
-		ImageView imageView = (ImageView) view.findViewById(R.id.image_view);
-		File imgFile = new File(data.get(position));
-    	Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
-        imageView.setImageBitmap(myBitmap);
-
-        return view;
-	}
-
-
+public class Adapter extends BaseAdapter{
+	private Context context;
+	private ArrayList<String> data;
 	
+	public Adapter(Context c){
+		context = c;
+		data = MainActivity.galleryList;
+	}
+
 	@Override
 	public int getCount() {
-		// TODO Auto-generated method stub
-		return data.size();
-	}
-	
+        return data.size();
+    }
+
+	@Override
+    public Object getItem(int position) {
+        return null;
+    }
+
+	@Override
+    public long getItemId(int position) {
+        return 0;
+    }
+
+    // create a new ImageView for each item referenced by the Adapter
+    public View getView(int position, View convertView, ViewGroup parent) {
+        ImageView imageView;
+        if (convertView == null) {  // if it's not recycled, initialize some attributes
+            imageView = new ImageView(context);
+            imageView.setLayoutParams(new GridView.LayoutParams(150, 120));
+            imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);//CENTER_CROP);
+            imageView.setPadding(5, 1, 5, 1);
+            if(MainActivity.selectedFiles.contains(MainActivity.galleryList.get(position))){
+            	imageView.setBackgroundColor(Color.BLACK);
+            }else{
+            	imageView.setBackgroundColor(Color.WHITE);
+            }
+        } else {
+            imageView = (ImageView) convertView;
+        }
+
+        //imageView.setImageResource(mThumbIds[position]);
+        File imgFile = new File(data.get(position));
+    	Bitmap a_bitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+    	imageView.setImageBitmap(a_bitmap);
+        return imageView;
+    }
+    
+    public void remove(String path){
+    	data.remove(path);
+    }
 }

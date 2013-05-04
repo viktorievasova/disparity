@@ -14,4 +14,10 @@ public class Graphics_GLSurfaceView extends GLSurfaceView{
 	        setRenderer(a_renderer);	    
 	}
 	
+	@Override
+	public void onPause(){
+		super.onPause();
+		a_renderer.releaseMeshBuffers();
+	}
+	
 }

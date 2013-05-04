@@ -18,14 +18,12 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener;
-import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 import com.vasova.bachelorproject.R;
 import com.vasova.bachelorproject.MainActivity;
-import org.opencv.calib3d.StereoSGBM;
 
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -107,6 +105,7 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 		inBackground = false;
         /*inicializace noveho seznamu vyfocenych obrazku*/ 
 		galleryList = new ArrayList<String>();
+		selectedFiles = new ArrayList<String>();
         readData();
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -180,7 +179,7 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
     		try{
     			//conversion bgr->rgb
     			Mat pictureToWrite = new Mat();
-    			Imgproc.cvtColor(takenPicture, pictureToWrite, Imgproc.COLOR_BGR2BGRA);
+    			Imgproc.cvtColor(takenPicture, pictureToWrite, Imgproc.COLOR_BGRA2RGBA);
     			
     			/*generovani cesty k souboru, pripadne vytvoreni souboru, pokud neexistuje*/
     			String dirName = "Gallery";
@@ -193,7 +192,6 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 	    				Log.d("bachelor project", "failed to create directory");
 	    			}
 	    		}
-	    		
 	    		/*vytvoreni nazvu pro ukladany soubor a zapsani souboru*/
 	    		String timeOfTakingPicture = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 	    		String filePath = dirPath + "/img" + timeOfTakingPicture + ".jpg";

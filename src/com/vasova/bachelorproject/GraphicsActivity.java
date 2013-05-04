@@ -25,6 +25,7 @@ public class GraphicsActivity extends Activity {
     {
         super.onPause();
         mGLView.onPause();
+        
     }
 
     @Override

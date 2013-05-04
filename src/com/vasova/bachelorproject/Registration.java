@@ -1,26 +1,18 @@
 package com.vasova.bachelorproject;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Vector;
-import java.util.regex.Matcher;
 
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfKeyPoint;
-import org.opencv.core.Scalar;
 import org.opencv.core.Size;
-import org.opencv.features2d.DMatch;
 import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
 import org.opencv.features2d.Features2d;
-import org.opencv.features2d.KeyPoint;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
-
-import android.graphics.Bitmap;
 
 public class Registration {
 	
@@ -40,9 +32,8 @@ public class Registration {
 	
 	private ArrayList<MatOfKeyPoint> keyPoints;
 	private MatOfDMatch[] matches;
-	//private ArrayList<MatOfDMatch[]> matches; 
 	
-	private Mat[] imagesWithKeyPoints;
+	private ArrayList<Mat> imagesWithKeyPoints;
 	private ArrayList<Mat> descriptors;
 	private ArrayList<Mat> originalImages;
 	
@@ -55,28 +46,44 @@ public class Registration {
 		this.originalImages = images;
 		register();
 	}
+	
 	public void register(){
 		findKeyPoints();
+		System.out.println("keypoints found");
 		matchKeyPoints();
+		System.out.println("keypoints matched");
 	}
 	
 	private void findKeyPoints(){
-		FeatureDetector surf = FeatureDetector.create(FeatureDetector.STAR);
+		FeatureDetector surf = FeatureDetector.create(FeatureDetector.ORB);
 		DescriptorExtractor descriptor = DescriptorExtractor.create(DescriptorExtractor.ORB);
 		
 		keyPoints = new ArrayList<MatOfKeyPoint>();
 		descriptors = new ArrayList<Mat>();
 		
-		surf.detect(originalImages, keyPoints);
-		descriptor.compute(originalImages, keyPoints, descriptors);
-		
+		//surf.detect(originalImages, keyPoints);
+		//descriptor.compute(originalImages, keyPoints, descriptors);
+		for(int i = 0; i < originalImages.size(); i++){
+			MatOfKeyPoint cKeypoints = new MatOfKeyPoint();
+			surf.detect(originalImages.get(i), cKeypoints);
+			Mat cDescriptors = new Mat();
+			descriptor.compute(originalImages.get(i), cKeypoints, cDescriptors);
+			keyPoints.add(cKeypoints);
+			descriptors.add(cDescriptors);
+			Mat m = new Mat();
+			Features2d.drawKeypoints(originalImages.get(i), cKeypoints, m);
+			//imagesWithKeyPoints.add(m);
+			//Highgui.imwrite("mnt/sdcard/Pictures/Gallery/keypoints"+ i +".jpg", m);
+		}
 	}
 	
 	private void matchKeyPoints(){
-		DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE);
+		DescriptorMatcher //matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE);
+		matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
 		int n = originalImages.size();
 		int numOfPairs = (n*(n-1))/2;
 		int index = 0;
+		
 		
 		matches = new MatOfDMatch[numOfPairs];
 		for(int i = 0; i < originalImages.size(); i++){
@@ -84,11 +91,25 @@ public class Registration {
 				Mat descriptors1 = descriptors.get(i);
 				Mat descriptors2 = descriptors.get(j);
 				MatOfDMatch current_matches = new MatOfDMatch();
-				matcher.match(descriptors1, descriptors2, current_matches);
-				System.out.println(index);
+				matcher.match(descriptors2, descriptors1, current_matches);
+				
+				filterMatches(current_matches, descriptors2, descriptors1);
+				
 				matches[index++] = current_matches;
+				
+				
+				Mat drawM = new Mat();
+				Features2d.drawMatches(originalImages.get(j), keyPoints.get(j), originalImages.get(i), keyPoints.get(i), current_matches, drawM);
+				Highgui.imwrite("mnt/sdcard/Pictures/Gallery/matches.jpg", drawM);			
+				
 			}
 		}
+	
+	}
+	
+	private void filterMatches(MatOfDMatch matches, Mat descriptors1, Mat descriptors2){
+		//matches - for each descriptor from image descriptors2 was found the nearest descriptor in descriptor1 using Euclidean metric
+		
 	}
 	
 	public ArrayList<MatOfKeyPoint> getKeyPoints(){
@@ -102,17 +123,10 @@ public class Registration {
 	public boolean isSetMutualInformation(){
 		return this.mutual_information;
 	}
+	
 	/*
 	public ArrayList<int[]> register(ArrayList<String> pictures){
 		int[] scales = {SCALE80, SCALE160};
-		
-		if (this.sum_of_absolute_differences){
-			
-			
-		}else if (this.mutual_information){
-			
-			
-		}
 		ArrayList<int[]> overlaps = new ArrayList<int[]>();
 		for (int i = 0; i < pictures.size(); i++){
 			Mat img = Highgui.imread(pictures.get(i));
@@ -121,7 +135,6 @@ public class Registration {
 					continue;
 				}
 				System.out.println("matching picture " + i + " with picture " + j);
-				
 				Mat img1 = Highgui.imread(pictures.get(j));
 				int[] overlap = findOverlap(img, img1, scales);
 				overlaps.add(overlap);

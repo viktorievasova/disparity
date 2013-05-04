@@ -15,11 +15,17 @@ public class MeshModel {
 	private float vertices[];
 	private float colors[];
 
+	private ByteBuffer vertexByteBuffer; 
+    private ByteBuffer colorByteBuffer;
 	private void makeVertices(Mat original, Mat disparity){
 		
-		int width = 320;//original.width();
-		int heigth = 240;//original.height();
+		int width = original.width();
+		int heigth = original.height();
 		
+		if (width*heigth > 86700){
+			width = 340;
+			heigth = 255;
+		}
 		int numOfSquares = width*heigth;
 		int numOfTriangles = numOfSquares * 2;
 		int numOfVertices = numOfTriangles * 3;
@@ -37,7 +43,7 @@ public class MeshModel {
 		int verticesIndex = 0;
 		int colorsIndex = 0;
 		
-		float z;
+		float z = 0f;
 		for (int h = 0; h < heigth; h++){
 			for (int w = 0; w < width; w++){
 				double[] v = disparity.get(h, w);
@@ -92,21 +98,21 @@ public class MeshModel {
 	public MeshModel(Mat original, Mat disparity) {
 		makeVertices(original, disparity);
 		try{
-			ByteBuffer vertexByteBuffer = ByteBuffer.allocateDirect(vertices.length * 4);
+			vertexByteBuffer = ByteBuffer.allocateDirect(vertices.length * 4);
 			vertexByteBuffer.order(ByteOrder.nativeOrder());
 			vertexBuffer = vertexByteBuffer.asFloatBuffer();
 			vertexBuffer.put(vertices);
 			vertexBuffer.position(0);
 			
 			
-		    ByteBuffer colorByteBuffer = ByteBuffer.allocateDirect(colors.length * 4);
+			colorByteBuffer = ByteBuffer.allocateDirect(colors.length * 4);
 		    colorByteBuffer.order(ByteOrder.nativeOrder());
 		    colorBuffer = colorByteBuffer.asFloatBuffer();
 		    colorBuffer.put(colors);
 		    colorBuffer.position(0);
 			
 		}catch(OutOfMemoryError me){
-			// 
+			System.out.println("out of memory eception buffers"); 
 		}
 	}
 
@@ -117,7 +123,7 @@ public class MeshModel {
 		gl.glEnableClientState(GL10.GL_COLOR_ARRAY);
 		
 		gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
-		
+
 		//Point to color buffer
 		gl.glColorPointer(4, GL10.GL_FLOAT, 0, colorBuffer);
 		// Point to our vertex
@@ -129,5 +135,15 @@ public class MeshModel {
 		//Disable the client state before leaving
 		gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);
 		gl.glDisableClientState(GL10.GL_COLOR_ARRAY);
+		
+	}
+	
+	public void releaseBuffers(){
+		vertices = null;
+		colors = null;
+		vertexBuffer = null;
+		colorBuffer = null;
+		vertexByteBuffer = null;
+		colorByteBuffer = null;
 	}
 }

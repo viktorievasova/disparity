@@ -2,42 +2,38 @@ package com.vasova.bachelorproject;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 
 import org.opencv.calib3d.StereoSGBM;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfKeyPoint;
-import org.opencv.core.Scalar;
-import org.opencv.features2d.FeatureDetector;
-import org.opencv.features2d.Features2d;
 import org.opencv.highgui.Highgui;
-import org.opencv.imgproc.Imgproc;
 
 import android.os.Bundle;
 import android.os.Environment;
-import android.renderscript.Type;
-import android.app.ListActivity;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
-import android.view.ContextMenu;
-import android.view.ContextMenu.ContextMenuInfo;
+import android.graphics.Color;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ListView;
-import android.widget.Toast;
+import android.widget.GridView;
+import android.widget.ImageView;
 
-public class GalleryActivity extends ListActivity {
+public class GalleryActivity extends Activity {
 
 	public static boolean inForeground = false;
-	private ArrayList<String> list_of_files;
-	private int listPosition;
 	private Adapter adapter;
 	
 	private MenuItem processItem;
 	private MenuItem settingsItem;
-		
+	private MenuItem deleteItem;
+	
+	private Context context = this;
+	
 	public static Mat original1;
 	public static Mat original2;
 	
@@ -46,81 +42,46 @@ public class GalleryActivity extends ListActivity {
 	
 	public static Registration registration;
 	
-	/*
-	 * (non-Javadoc)
-	 * @see android.app.Activity#onCreate(android.os.Bundle)
-	 * An ArrayList of Strings list_of_files is initialized.
-	 * An Adapter in set for the ListActivity
-	 */
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
+	public void onCreate(Bundle savedInstanceState){
 		inForeground = true;
+		registration = new Registration();
 		super.onCreate(savedInstanceState);
-		list_of_files = MainActivity.galleryList;
-        this.setTitle("Gallery");
-        
-        registerForContextMenu(getListView());
-        adapter = new Adapter(this, list_of_files);
-        setListAdapter(adapter);
-        registration = new Registration();
+		
+		setContentView(R.layout.activity_gallery);
+	    GridView gridview = (GridView) findViewById(R.id.gridview);
+	    adapter = new Adapter(this);
+	    gridview.setAdapter(adapter);
+	    
+	    
+	    gridview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+	        public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
+	        	ImageView imgv = (ImageView) v;//parent.getChildAt(position);
+	        	String selectedImagePath = (String) MainActivity.galleryList.get(position);
+	        	
+	        	if (MainActivity.selectedFiles.contains(selectedImagePath)){
+	        		MainActivity.selectedFiles.remove(selectedImagePath);
+	        		imgv.setBackgroundColor(Color.WHITE);
+	        	}else{
+			    	MainActivity.selectedFiles.add(selectedImagePath);
+			    	imgv.setBackgroundColor(Color.BLACK);
+	        	}
+	        }
+	    });
+	    
 	}
 	
-	@Override
-	protected void onListItemClick(ListView l, View v, int position, long id) {
-		//get selected items
-		String selectedValue = (String) getListAdapter().getItem(position);
-		Toast.makeText(this, selectedValue, Toast.LENGTH_SHORT).show();
-		listPosition = position;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see android.app.Activity#onCreateContextMenu(android.view.ContextMenu, android.view.View, android.view.ContextMenu.ContextMenuInfo)
-	 * Method defines callback to be invoked when the context menu for this view is being built.
-	 * There is an option to delete item.
-	 */
-	@Override
-	public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo){
-		super.onCreateContextMenu(menu, v, menuInfo);
-
-		menu.setHeaderTitle("menu");
-		menu.add(0, v.getId(), 0, "delete");
-	}
-	
-	@Override 
-	public boolean onContextItemSelected(MenuItem item){
-		//if an item should be deleted:
-		if(item.getTitle() == "delete"){
-			AdapterView.AdapterContextMenuInfo menuInfo = (AdapterView.AdapterContextMenuInfo)item.getMenuInfo();
-			//get the position of deleting file:
-			listPosition = menuInfo.position;
-			//get the path of the file:
-			String path = list_of_files.get(listPosition);
-			File f = new File(path);
-			if (f.delete()){
-				//list_of_files.remove(listPosition);
-				adapter.remove(path);
-				MainActivity.galleryList.remove(path);
-				//if the file was checked - it is necessary to remove the path from the list of selected files
-				if (MainActivity.selectedFiles.contains(path)){
-					MainActivity.selectedFiles.remove(path);
-				}
-				adapter.notifyDataSetChanged();
-				System.out.println("file " + path + " was deleted");
-				
-			}else{
-				System.out.println("file " + path + " could not be deleted");
-			}
-		}
-		return true;
-	}
 	
 	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		//getMenuInflater().inflate(R.menu.activity_gallery, menu);
+	public boolean onPrepareOptionsMenu(Menu menu) {
+		menu.clear();
 		processItem = menu.add("Process");
 		settingsItem = menu.add("Settings");
+		deleteItem = menu.add("Delete");
+		if (MainActivity.selectedFiles.size() == 0){
+			deleteItem.setEnabled(false);
+		}else{
+			deleteItem.setEnabled(true);
+		}
 		return true;
 	}
 	
@@ -129,18 +90,15 @@ public class GalleryActivity extends ListActivity {
 		//start the action for the selected files:
 		if (item == processItem){
 			if (MainActivity.selectedFiles.size() < 2){
-				//return true;
+				return true;
 			}
 
-			//original2 = Highgui.imread("mnt/sdcard/Pictures/Gallery/mmsL.jpg"); 
-			//original1 = Highgui.imread("mnt/sdcard/Pictures/Gallery/mmsM.jpg");
-
-			original1 = Highgui.imread("mnt/sdcard/Pictures/Gallery/tsucuba_left.png"); 
-			original2 = Highgui.imread("mnt/sdcard/Pictures/Gallery/tsucuba_right.png");
-			/*
-			original2 = Highgui.imread(MainActivity.selectedFiles.get(0)); 
+			//original1 = Highgui.imread("mnt/sdcard/Pictures/Gallery/mmsM.png"); 
+			//original2 = Highgui.imread("mnt/sdcard/Pictures/Gallery/mmsL.png");
+			
+			original1 = Highgui.imread(MainActivity.selectedFiles.get(0)); 
 			original2 = Highgui.imread(MainActivity.selectedFiles.get(1));
-			*/
+			
 			
 			ArrayList<Mat> images = new ArrayList<Mat>();
 			images.add(original1);
@@ -169,7 +127,11 @@ public class GalleryActivity extends ListActivity {
 					"/Gallery/diparityMap.jpg";
 			result = new Mat();
 			disparityMap.convertTo(result, CvType.CV_8U, 255/(numOfDisparities*16.0));
-			//Highgui.imwrite(filename, result);
+			if(Highgui.imwrite(filename, result)){
+				System.out.println("writting ok");
+			}else{
+				System.out.println("writting failed");
+			}
 			
 			Intent intent = new Intent(this, GraphicsActivity.class);
         	startActivity(intent);
@@ -177,8 +139,43 @@ public class GalleryActivity extends ListActivity {
 		}else if (item == settingsItem){
 			Intent intent = new Intent(this, SettingsActivity.class);
 			startActivity(intent);
+		}else if (item == deleteItem){
+			AlertDialog.Builder builder = new AlertDialog.Builder(context);
+			builder.setTitle("Delete items");
+			builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					// TODO Auto-generated method stub
+					deleteItems();
+				}
+			});
+			
+			builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+				
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					// TODO Auto-generated method stub
+					dialog.cancel();
+					
+				}
+			});
+			
+			AlertDialog aDialog = builder.create();
+			aDialog.show();
 		}
 		return true;
+	}
+	
+	private void deleteItems(){
+		for(int i = 0; i < MainActivity.selectedFiles.size(); i++){
+			String path = MainActivity.selectedFiles.get(i);
+			File f = new File(path);
+			if (f.delete()){
+				MainActivity.selectedFiles.remove(i);
+				adapter.remove(path);
+				adapter.notifyDataSetChanged();
+			}
+		}
 	}
 	
 	public static Mat getOriginal(){
@@ -207,5 +204,4 @@ public class GalleryActivity extends ListActivity {
 	public void onStop(){
 		super.onStop();
 	}
-
 }
