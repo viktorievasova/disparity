@@ -93,11 +93,11 @@ public class GalleryActivity extends Activity {
 				return true;
 			}
 
-			//original1 = Highgui.imread("mnt/sdcard/Pictures/Gallery/mmsM.png"); 
-			//original2 = Highgui.imread("mnt/sdcard/Pictures/Gallery/mmsL.png");
+			original1 = Highgui.imread("mnt/sdcard/Pictures/Gallery/img_b.png"); 
+			original2 = Highgui.imread("mnt/sdcard/Pictures/Gallery/img_a.png");
 			
-			original1 = Highgui.imread(MainActivity.selectedFiles.get(0)); 
-			original2 = Highgui.imread(MainActivity.selectedFiles.get(1));
+			//original1 = Highgui.imread(MainActivity.selectedFiles.get(0)); 
+			//original2 = Highgui.imread(MainActivity.selectedFiles.get(1));
 			
 			
 			ArrayList<Mat> images = new ArrayList<Mat>();
