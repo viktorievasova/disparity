@@ -47,7 +47,6 @@ containing a value of this type.
         public static final int ic_launcher=0x7f020000;
     }
     public static final class id {
-        public static final int a_row=0x7f05000b;
         public static final int any=0x7f050000;
         public static final int back=0x7f050001;
         public static final int camera_view=0x7f050004;
@@ -57,9 +56,8 @@ containing a value of this type.
         public static final int confirmButton=0x7f05000a;
         public static final int front=0x7f050002;
         public static final int gridview=0x7f050003;
-        public static final int image_view=0x7f05000c;
-        public static final int menu_settings=0x7f05000e;
-        public static final int path_field=0x7f05000d;
+        public static final int image=0x7f05000b;
+        public static final int menu_settings=0x7f05000c;
         public static final int startCapturingButton=0x7f050006;
         public static final int toggleAutoCaptureButton=0x7f050007;
     }
@@ -68,7 +66,7 @@ containing a value of this type.
         public static final int activity_graphics=0x7f030001;
         public static final int activity_main=0x7f030002;
         public static final int activity_settings=0x7f030003;
-        public static final int list_row=0x7f030004;
+        public static final int galley_item=0x7f030004;
     }
     public static final class menu {
         public static final int activity_gallery=0x7f090000;

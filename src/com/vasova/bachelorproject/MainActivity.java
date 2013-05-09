@@ -22,6 +22,8 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
+
+import com.vasova.bachelorproject.Adapter.GridImage;
 import com.vasova.bachelorproject.R;
 import com.vasova.bachelorproject.MainActivity;
 
@@ -69,10 +71,9 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
     
     public static ArrayList<String> galleryList;
     public String dataFileName = "galleryData";
-    
-    public static ArrayList<String> selectedFiles;
-	public String selectedFilesFileName = "selectedData";
-    
+    public static ArrayList<GridImage> imagesDB;
+
+//	public String selectedFilesFileName = "selectedData";
 	private boolean autoCaptureON = false;
 	private boolean autoCapturingStarted = false;
 	private SensorManager sensorManager;
@@ -103,9 +104,10 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 	protected void onCreate(Bundle savedInstanceState) {
 		Log.i(TAG, "called onCreate");
 		inBackground = false;
-        /*inicializace noveho seznamu vyfocenych obrazku*/ 
+        /*inicializace noveho seznamu vyfocenych obrazku*/
+		imagesDB = new ArrayList<GridImage>();
 		galleryList = new ArrayList<String>();
-		selectedFiles = new ArrayList<String>();
+
         readData();
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -335,9 +337,9 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
     private void writeData(){
 		try{
 			FileOutputStream fos = openFileOutput(dataFileName, MODE_PRIVATE);
-			FileOutputStream fosSelected = openFileOutput(selectedFilesFileName, MODE_PRIVATE);
+			//FileOutputStream fosSelected = openFileOutput(selectedFilesFileName, MODE_PRIVATE);
 			BufferedWriter bffw = new BufferedWriter(new OutputStreamWriter(fos));
-			BufferedWriter bffwSelected = new BufferedWriter(new OutputStreamWriter(fosSelected));
+			//BufferedWriter bffwSelected = new BufferedWriter(new OutputStreamWriter(fosSelected));
 			
 			String line;
 			for (int i = 0; i < galleryList.size(); i++){
@@ -357,8 +359,8 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 			*/
 			bffw.close();
 			fos.close();
-			bffwSelected.close();
-			fosSelected.close();
+			//bffwSelected.close();
+			//fosSelected.close();
 		}catch(Exception e){
 			Log.d("CameraApp","failed to write data");
 		}
@@ -367,12 +369,12 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 	private void readData(){
 		try{
 			FileInputStream fis = openFileInput(dataFileName);
-			FileInputStream fisSelected = openFileInput(selectedFilesFileName);
+			//FileInputStream fisSelected = openFileInput(selectedFilesFileName);
 			
 			galleryList = new ArrayList<String>();
-			selectedFiles = new ArrayList<String>();
+			//selectedFiles = new ArrayList<String>();
 			BufferedReader bffr = new BufferedReader(new InputStreamReader(fis));
-			BufferedReader bffrSelected = new BufferedReader(new InputStreamReader(fisSelected));
+			//BufferedReader bffrSelected = new BufferedReader(new InputStreamReader(fisSelected));
 			
 			String line;
 			String filePath;
@@ -385,18 +387,18 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 			}
 			
 			String lineSelected;
-			while((lineSelected = bffrSelected.readLine()) != null){
-				filePath = lineSelected;
-				File f = new File(filePath);
-				if (f.exists()){
-					selectedFiles.add(filePath);
-				}
-			}
+			//while((lineSelected = bffrSelected.readLine()) != null){
+				//filePath = lineSelected;
+				//File f = new File(filePath);
+				//if (f.exists()){
+					//selectedFiles.add(filePath);
+				//}
+			//}
 			bffr.close();
 			fis.close();
 			
-			bffrSelected.close();
-			fisSelected.close();
+			//bffrSelected.close();
+			//fisSelected.close();
 		}catch(Exception e){
 			System.out.println(e);
 		}

@@ -3,7 +3,7 @@ package com.vasova.bachelorproject;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.opencv.calib3d.Calib3d;
+import org.opencv.calib3d.StereoSGBM;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -11,7 +11,6 @@ import org.opencv.core.MatOfDMatch;
 import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfInt;
 import org.opencv.core.MatOfKeyPoint;
-import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Range;
 import org.opencv.core.Size;
@@ -22,8 +21,9 @@ import org.opencv.features2d.FeatureDetector;
 import org.opencv.features2d.Features2d;
 import org.opencv.features2d.KeyPoint;
 import org.opencv.highgui.Highgui;
-import org.opencv.highgui.VideoCapture;
 import org.opencv.imgproc.Imgproc;
+
+import android.os.Environment;
 
 public class Registration {
 	
@@ -36,13 +36,15 @@ public class Registration {
 	private ArrayList<MatOfKeyPoint> keyPoints;
 	private MatOfDMatch[] matches;
 	
-	private ArrayList<Mat> imagesWithKeyPoints;
 	private ArrayList<Mat> descriptors;
 	private ArrayList<Mat> originalImages;
+	private ArrayList<Mat> disparities;
 	
 	private ArrayList<double[]> overlaps;
 	private double[] areaScore;
+	
 	private Mat imageWithThemostInformation;
+	private Mat disparityMap;
 	
 	public Registration(){
 		//sum_of_absolute_differences the default method of registration
@@ -66,19 +68,79 @@ public class Registration {
 	}
 	
 	private void register(){
-		getOverlaps();		
+		getOverlaps();	
 		findKeyPoints();
 		matchKeyPoints();
+		calculateDisparityMaps();
 	}
 	
-	private void createDataSet(){
+	public Mat getImgForVisualization(){
+		return imageWithThemostInformation;
+	}
+	
+	public Mat getDisparityMap(){
+		return disparityMap;
+	}
+	
+	private void calculateDisparityMaps(){
+		int indexInOverlaps = 0;
+		disparities = new ArrayList<Mat>();
 		for(int i = 0; i < originalImages.size(); i++){
+			Mat image1 = originalImages.get(i);
 			for (int j = i+1; j < originalImages.size(); j++){
-				//for each pair in originalImages create data set: {index of img1, index of img2, matches between img1&img2, overlap}
+				Mat image2 = originalImages.get(j);
+				Mat left = getLeftImage(image1, image2, overlaps.get(indexInOverlaps));
+				Mat right;
+				if (left.equals(image1)){
+					right = image2;
+				}else{
+					right = image1;
+				}
+				Mat currentDisparityMap = new Mat();			
 				
+				int channels = 3;
+				int preFilterCap = 63;
+				
+				int SADWindowSize = 3;
+				
+				int minDisparity = 0;
+				int numOfDisparities = ((image1.width()/8) + 15) & -16;
+				
+				int P1 =  8*channels*SADWindowSize*SADWindowSize;
+				int P2 = 32*channels*SADWindowSize*SADWindowSize;
+				
+				int disp12MaxDiff = 1;
+				int uniquenessRatio = 10;
+				int speckleWindowSize = 100;
+				int speckleRange = 32;
+				
+				
+				StereoSGBM s = new StereoSGBM(minDisparity, numOfDisparities, SADWindowSize, 
+					       P1, P2, disp12MaxDiff, preFilterCap, uniquenessRatio,speckleWindowSize, speckleRange, false);
+				s.compute(left, right, currentDisparityMap);
+				disparities.add(currentDisparityMap);
+				this.disparityMap = currentDisparityMap;
+				Mat result = new Mat();
+				String filename = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/Gallery/diparityMap.jpg";
+				disparityMap.convertTo(result, CvType.CV_8U, 255/(numOfDisparities*16.0));
+				Highgui.imwrite(filename, result);
+				
+				indexInOverlaps++;
 			}
 		}
 		
+	}
+	
+	private Mat getLeftImage(Mat img1, Mat img2, double[] overlap){
+		Mat leftMat;
+		double bottomXinImg1 = overlap[0];
+		double widthOfOverlap = overlap[4];
+		if (bottomXinImg1 - widthOfOverlap > 0){
+			leftMat = img1;
+		}else{
+			leftMat = img2;
+		}
+		return leftMat;
 	}
 	
 	private void findKeyPoints(){
@@ -126,8 +188,7 @@ public class Registration {
 				
 				Mat drawM = new Mat();
 				Features2d.drawMatches(originalImages.get(j), keyPoints.get(j), originalImages.get(i), keyPoints.get(i), current_matches, drawM);
-				Highgui.imwrite("mnt/sdcard/Pictures/Gallery/matches.jpg", drawM);			
-				
+				Highgui.imwrite("mnt/sdcard/Pictures/Gallery/matches"+i+j+".jpg", drawM);			
 			}
 		}
 	
@@ -150,8 +211,8 @@ public class Registration {
 			lpoints2.add(kpoints2[dmatch.trainIdx].pt);
 		}
 		
-		MatOfPoint2f points1 = new MatOfPoint2f(lpoints1.toArray(new Point[0]));
-		MatOfPoint2f points2 = new MatOfPoint2f(lpoints2.toArray(new Point[0]));
+		//MatOfPoint2f points1 = new MatOfPoint2f(lpoints1.toArray(new Point[0]));
+		//MatOfPoint2f points2 = new MatOfPoint2f(lpoints2.toArray(new Point[0]));
 		
 		//Mat m = Calib3d.findFundamentalMat(points1, points2, Calib3d.FM_RANSAC, 3, 0.99);
 		
@@ -184,14 +245,15 @@ public class Registration {
 	private void getOverlaps(){
 		Mat img1;
 		Mat img2;
+		overlaps = new ArrayList<double[]>();
 		for(int i = 0; i < originalImages.size(); i++){
 			img1 = originalImages.get(i);
 			for (int j = i+1; j < originalImages.size(); j++){
 				img2 = originalImages.get(j);
 				double[] overlap = new double[6];
-				if (sum_of_absolute_differences){
+				if (this.sum_of_absolute_differences){
 					overlap = getOverlapSOAD(img1, img2);
-				}else if(mutual_information){
+				}else if(this.mutual_information){
 					overlap = getOverlapMI(img1, img2);
 				}
 				overlaps.add(overlap);
@@ -370,7 +432,7 @@ public class Registration {
             float Hc = Math.abs(getHistogramBinValue(b,i));
             entropy += -(Hc/frequency) * Math.log10((Hc/frequency));
         }
-        entropy = entropy;
+        //entropy = entropy;
         //cout << entropy <<endl;
         return entropy;
 
