@@ -9,6 +9,7 @@ import org.opencv.highgui.Highgui;
 import android.os.Bundle;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -18,6 +19,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.GridView;
+import android.widget.ProgressBar;
 
 import com.vasova.bachelorproject.Adapter.GridImage;
 
@@ -100,11 +102,12 @@ public class GalleryActivity extends Activity {
 			}
 			
 			registration.setImages(images);
-			imgForVisualization = registration.getImgForVisualization();
-			disparityMap = registration.getDisparityMap();
 			
-			Intent intent = new Intent(this, GraphicsActivity.class);
-        	startActivity(intent);
+			//imgForVisualization = registration.getImgForVisualization();
+			//disparityMap = registration.getDisparityMap();
+			
+			//Intent intent = new Intent(this, GraphicsActivity.class);
+        	//startActivity(intent);
 			
 		}else if (item == settingsItem){
 			Intent intent = new Intent(this, SettingsActivity.class);
