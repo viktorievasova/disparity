@@ -6,14 +6,21 @@ import javax.microedition.khronos.opengles.GL10;
 import org.opencv.core.Mat;
 
 import android.content.Context;
+import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLU;
 
 public class Graphics_Renderer implements  GLSurfaceView.Renderer{
 	//private Square 		square;
 	private MeshModel mesh;
-	private float angleZ = 0f;
-	//private Context context;
+	
+	public float angleX = 0f;
+	public float angleY = 0f;
+	
+	private float angleDelta = 0f;//0.4f;
+	
+	public float deltaX;
+	public float deltaY;
 	
 	public Graphics_Renderer(Context context, Mat origImg, Mat dispImg) {
 		//this.context = context;
@@ -38,10 +45,10 @@ public class Graphics_Renderer implements  GLSurfaceView.Renderer{
 
 		// Drawing
 		gl.glTranslatef(0.0f, 0.0f, -5.0f);
-		gl.glRotatef(angleZ, 0f, 1f, 0f); 
-						
+		
+		gl.glRotatef(angleY, 0f, 1f, 0f); 
+		gl.glRotatef(angleX, 1f, 0f, 0f);				
 		mesh.draw(gl);
-		angleZ += 0.4f;
 	}
 
 	@Override
@@ -68,4 +75,11 @@ public class Graphics_Renderer implements  GLSurfaceView.Renderer{
 		
 	}
 
+	public void switchMode(){
+		if (angleDelta == 0.4f){
+			angleDelta = 0f;
+		}else if (angleDelta == 0f){
+			angleDelta = 0.4f;
+		}
+	}
 }

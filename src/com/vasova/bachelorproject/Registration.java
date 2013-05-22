@@ -3,6 +3,8 @@ package com.vasova.bachelorproject;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Dictionary;
+import java.util.HashMap;
 import java.util.List;
 
 import org.opencv.calib3d.StereoSGBM;
@@ -26,8 +28,11 @@ import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
 import android.os.Environment;
+import android.util.Log;
 
 public class Registration {
+	
+	String registration_tag = "Registration";
 	
 	public static String mi_string = "mutual information";
 	public static String soad_string = "sum_of_absolute_differences";
@@ -51,6 +56,8 @@ public class Registration {
 	private Mat imageWithThemostInformation;
 	private Mat disparityMap;
 	
+	private ArrayList<ImageStructure> images;
+	
 	public Registration(){
 		//sum_of_absolute_differences the default method of registration
 		sum_of_absolute_differences = true;
@@ -66,15 +73,29 @@ public class Registration {
 		int indexOfMaxScore = -1;
 		double score = 0;
 		for (int i = 0; i < areaScore.length; i++){
-			if (areaScore[i] > score){
+			if (areaScore[i] >= score){
 				indexOfMaxScore = i;
 			}
 		}
-		//imageWithThemostInformation = this.originalImages.get(indexOfMaxScore);
+		imageWithThemostInformation = this.images.get(indexOfMaxScore).mat;
+		System.out.println(indexOfMaxScore);
 	}
 	
 	private void register(){
 		System.out.println("registration started at " + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) );
+		images = new ArrayList<Registration.ImageStructure>();
+		Mat image;
+		for(int i = 0; i < originalImages.size(); i++){
+			image = originalImages.get(i);
+			ImageStructure imgStruct = new ImageStructure(image.clone());
+			imgStruct.scales = new ArrayList<Mat>();
+			imgStruct.scales.add(image.clone());
+			for(int s = 0; s < 4; s++){
+				Imgproc.pyrDown(image, image);
+				imgStruct.scales.add(image.clone());
+			}
+			images.add(imgStruct);
+		}
 		getOverlaps();
 		//findKeyPoints();
 		//matchKeyPoints();
@@ -269,56 +290,55 @@ public class Registration {
 	}
 	
 	private void getOverlaps(){
-//		System.out.println("get overlap method");
-		Mat img1;
-		Mat img2;
+		ImageStructure img1;
+		ImageStructure img2;
 		overlaps = new ArrayList<double[]>();
 		for(int i = 0; i < originalImages.size() - 1; i++){
 			int j = i+1;
 			
-			img1 = originalImages.get(i);
-			img2 = originalImages.get(j);
+			img1 = images.get(i);
+			img2 = images.get(j);
 			
 			
 			double[] overlap = new double[6];
 			if (this.sum_of_absolute_differences){
 				overlap = getOverlapSOAD(img1, img2);
 			}else if(this.mutual_information){
-				overlap = getOverlapMI(img1, img2);
+				overlap = getOverlapMI(img1.mat, img2.mat);
 			}
 			overlaps.add(overlap);
 			
 			if (i==0){
 				upperEdges[i] = new Point(0,0);
-				Mat left = getLeftImage(img1, img2, overlap);
-				Mat upper = getUpperImage(img1, img2, overlap);
+				Mat left = getLeftImage(img1.mat, img2.mat, overlap);
+				Mat upper = getUpperImage(img1.mat, img2.mat, overlap);
 				if (left.equals(img2)){
 					if (upper.equals(img2)){
-						upperEdges[j] = new Point(0-(img2.width() - overlap[4]), 0+(img2.height() - overlap[5]));
+						upperEdges[j] = new Point(0-(img2.width - overlap[4]), 0+(img2.height - overlap[5]));
 					}else{
-						upperEdges[j] = new Point(0-(img2.width() - overlap[4]), 0-(img2.height() - overlap[5]));
+						upperEdges[j] = new Point(0-(img2.width - overlap[4]), 0-(img2.height - overlap[5]));
 					}
 				}else{
 					if (upper.equals(img2)){
-						upperEdges[j] = new Point(0+(img2.width() - overlap[4]), 0+(img2.height() - overlap[5]));
+						upperEdges[j] = new Point(0+(img2.width - overlap[4]), 0+(img2.height - overlap[5]));
 					}else{
-						upperEdges[j] = new Point(0+(img2.width() - overlap[4]), 0-(img2.height() - overlap[5]));
+						upperEdges[j] = new Point(0+(img2.width - overlap[4]), 0-(img2.height - overlap[5]));
 					}
 				}
 			}else{
-				Mat left = getLeftImage(img1, img2, overlap);
-				Mat upper = getUpperImage(img1, img2, overlap);
+				Mat left = getLeftImage(img1.mat, img2.mat, overlap);
+				Mat upper = getUpperImage(img1.mat, img2.mat, overlap);
 				if (left.equals(img2)){
 					if (upper.equals(img2)){
-						upperEdges[j] = new Point(upperEdges[j-1].x - (img2.width() - overlap[4]), upperEdges[j-1].y + (img2.height() - overlap[5]) );
+						upperEdges[j] = new Point(upperEdges[j-1].x - (img2.width - overlap[4]), upperEdges[j-1].y + (img2.height - overlap[5]) );
 					}else{
-						upperEdges[j] = new Point(upperEdges[j-1].x - (img2.width() - overlap[4]), upperEdges[j-1].y - (img2.height() - overlap[5]) );
+						upperEdges[j] = new Point(upperEdges[j-1].x - (img2.width - overlap[4]), upperEdges[j-1].y - (img2.height - overlap[5]) );
 					}
 				}else{
 					if (upper.equals(img2)){
-						upperEdges[j] = new Point(upperEdges[j-1].x + (img2.width() - overlap[4]), upperEdges[j-1].y + (img2.height() - overlap[5]));
+						upperEdges[j] = new Point(upperEdges[j-1].x + (img2.width - overlap[4]), upperEdges[j-1].y + (img2.height - overlap[5]));
 					}else{
-						upperEdges[j] = new Point(upperEdges[j-1].x + (img2.width() - overlap[4]), upperEdges[j-1].y - (img2.height() - overlap[5]));
+						upperEdges[j] = new Point(upperEdges[j-1].x + (img2.width - overlap[4]), upperEdges[j-1].y - (img2.height - overlap[5]));
 					}
 				}
 			}
@@ -477,6 +497,7 @@ public class Registration {
         }
         return frequency;
     }
+	
 	private float computeShannonEntropy(Mat r, Mat g, Mat b){
         float entropy = 0.0f;
         float frequency = getFrequencyOfBin(r);
@@ -501,37 +522,28 @@ public class Registration {
         return entropy;
 
     }
+
 	
-	
-	private double[] getOverlapSOAD(Mat mat1, Mat mat2){
+	private double[] getOverlapSOAD(ImageStructure image1, ImageStructure image2){
 		double[] overlap = new double[6];
-		int numOfDownSamples = 4;
-		Mat image1 = mat1;
-		Mat image2 = mat2;
-		for (int i = 0; i < numOfDownSamples; i++){
-			Imgproc.pyrDown(image1, image1);
-			Imgproc.pyrDown(image2, image2);
-		}
-		
 		double[] previousOverlap = new double[0];
 		double[] currentOverlap;
-		int previousWidth = image1.width();
-		int previousHeight = image1.height();
+		int previousWidth = image1.scales.get(image1.scales.size() - 1).width();
+		int previousHeight = image1.scales.get(image1.scales.size() - 1).height();
 		int currentWidth;
 		int currentHeight;
-		for (int i = 0; i < numOfDownSamples; i++){
-			currentOverlap = getOverlapSOADforScaledImages(image1, image2, previousOverlap);
-			
-			Imgproc.pyrUp(image1, image1);
-			Imgproc.pyrUp(image2, image2);
-			currentWidth = image1.width();
-			currentHeight = image1.height();
-			previousOverlap = resizeCoords(currentOverlap, previousWidth, previousHeight, currentWidth, currentHeight);
-			previousWidth = currentWidth;
-			previousHeight = currentHeight;
+		for (int s = image1.scales.size() - 1; s >= 0; s--){
+			currentOverlap = getOverlapSOADforScaledImages(image1.scales.get(s), image2.scales.get(s), previousOverlap);
+			if (s != 0){
+				currentWidth = image1.scales.get(s-1).width();
+				currentHeight = image1.scales.get(s-1).height();
+				previousOverlap = resizeCoords(currentOverlap, previousWidth, previousHeight, currentWidth, currentHeight);
+				previousWidth = currentWidth;
+				previousHeight = currentHeight;
+			}
 		}
 		overlap = previousOverlap;
-		System.out.println("overlap: [" + overlap[0] + ", " + overlap[1] + ", " + overlap[2] + ", " + overlap[3] + ", " + overlap[4] + ", " + overlap[5] + "]");
+		//System.out.println("overlap: [" + overlap[0] + ", " + overlap[1] + ", " + overlap[2] + ", " + overlap[3] + ", " + overlap[4] + ", " + overlap[5] + "]");
 		return overlap;
 	}
 	
@@ -588,29 +600,26 @@ public class Registration {
 			startTopPosition2x = scaledImage2.width()-startWindowWidth;
 			startTopPosition2y = scaledImage2.height()-startWindowHeight;
 						
-		}else {						//jinak vylepsujeme prekryti v rozmezi 20 pixelu
-			int pixelRange = 20;
+		}else {						//jinak vylepsujeme prekryti v rozmezi pixelRange pixelu
+			int pixelRange = 5;
 			Mat left = getLeftImage(scaledImage1, scaledImage2, prevOverlap);
-			Mat upper = getUpperImage(scaledImage1, scaledImage2, prevOverlap);
-			
-			//startWindowWidth = (int)prevOverlap[4];
-			//startWindowHeight = (int)prevOverlap[5];
+			//Mat upper = getUpperImage(scaledImage1, scaledImage2, prevOverlap);
 			
 			if (left.equals(scaledImage2)){
-				int minX = (int)prevOverlap[0] - 20;
-				int minY = (int)prevOverlap[1] - 20;
+				int minX = (int)prevOverlap[0] - pixelRange;
+				int minY = (int)prevOverlap[1] - pixelRange;
 				if (minX < 1){
 					xWindowBoundsFrom = 1;
 					startWindowWidth = 1;
 					startBottomPosition1x = 1;
 					startTopPosition2x = width - 1;
-					xWindowBoundsTo = xWindowBoundsFrom + 2*20;
+					xWindowBoundsTo = xWindowBoundsFrom + 2*pixelRange;
 				}else{
 					xWindowBoundsFrom = minX;
 					startWindowWidth = minX;
 					startBottomPosition1x = minX;
 					startTopPosition2x = width - minX;
-					xWindowBoundsTo = xWindowBoundsFrom + 2*20;
+					xWindowBoundsTo = xWindowBoundsFrom + 2*pixelRange;
 				}
 				
 				if (minY < 1){
@@ -618,50 +627,51 @@ public class Registration {
 					startWindowHeight = 1;
 					startBottomPosition1y = 1;
 					startTopPosition2y = height - 1;
-					yWindowBoundsTo = yWindowBoundsFrom + 2*20;
+					yWindowBoundsTo = yWindowBoundsFrom + 2*pixelRange;
 				}else{
 					yWindowBoundsFrom = minY;
 					startWindowHeight = minY;
 					startBottomPosition1y = minY;
 					startTopPosition2y = height - minY;
-					yWindowBoundsTo = yWindowBoundsFrom + 2*20;
+					yWindowBoundsTo = yWindowBoundsFrom + 2*pixelRange;
 				}
 			}else{
-				int minX = (width - (int)prevOverlap[4]) - 20;
-				int minY = (height - (int)prevOverlap[5]) - 20;
+				int minX = (width - (int)prevOverlap[4]) - pixelRange;
+				int minY = (height - (int)prevOverlap[5]) - pixelRange;
 				
 				if (minX < 0){
 					int x  = (width - (int)prevOverlap[4]);
-					startTopPosition2x = 0 + (20 - x);
-					startWindowWidth = width - (20 - x);
-					xWindowBoundsFrom = width - (20 - x);
-					startBottomPosition1x = width - (20 - x);
-					xWindowBoundsTo = xWindowBoundsFrom + 2*20;
+					startTopPosition2x = 0 + (pixelRange - x);
+					startWindowWidth = width - (pixelRange - x);
+					xWindowBoundsFrom = width - (pixelRange - x);
+					startBottomPosition1x = width - (pixelRange - x);
+					xWindowBoundsTo = xWindowBoundsFrom + 2*pixelRange;
 				}else{
 					startTopPosition2x = 0;
-					startWindowWidth = (int)prevOverlap[4] + 20;
+					startWindowWidth = (int)prevOverlap[4] + pixelRange;
+					//if (startWindowWidth > width){
+						//startWindowWidth = width;
+					//}
 					xWindowBoundsFrom = width;
 					startBottomPosition1x = width;
-					xWindowBoundsTo = xWindowBoundsFrom + 2*20;
+					xWindowBoundsTo = xWindowBoundsFrom + 2*pixelRange;
 				}
 				
 				if (minY < 0){
 					int y  = (height - (int)prevOverlap[5]);
-					startTopPosition2y = 0 + (20 - y);
-					startWindowHeight = height - (20 - y);
-					yWindowBoundsFrom = height - (20 - y);
-					startBottomPosition1y = height - (20 - y);
-					yWindowBoundsTo = yWindowBoundsFrom + 2*20;
+					startTopPosition2y = 0 + (pixelRange - y);
+					startWindowHeight = height - (pixelRange - y);
+					yWindowBoundsFrom = height - (pixelRange - y);
+					startBottomPosition1y = height - (pixelRange - y);
+					yWindowBoundsTo = yWindowBoundsFrom + 2*pixelRange;
 				}else{
 					startTopPosition2y = 0;
-					startWindowHeight = (int)prevOverlap[5] + 20;
+					startWindowHeight = (int)prevOverlap[5] + pixelRange;
 					yWindowBoundsFrom = height;
 					startBottomPosition1y = height;
-					yWindowBoundsTo = yWindowBoundsFrom + 2*20;
+					yWindowBoundsTo = yWindowBoundsFrom + 2*pixelRange;
 				}
-				
 			}
-			
 		}
 		
 		currentBottomPosition1x = startBottomPosition1x;
@@ -675,9 +685,14 @@ public class Registration {
 		
 		for(int h = yWindowBoundsFrom-1; h < yWindowBoundsTo; h++){
 			for (int w = xWindowBoundsFrom-1; w < xWindowBoundsTo; w++){
+				//Log.i(registration_tag, " H & W: " + height +", " + width);
+				//Log.i(registration_tag, "Range H: [" + (currentBottomPosition1y - windowHeight) +", " + currentBottomPosition1y + "]");
+				//Log.i(registration_tag, "Range W: [" + (currentBottomPosition1x - windowWidth) +", " + currentBottomPosition1x + "]");
+				
 				//get the area in mat1
 				Mat subMat1 = scaledImage1.submat(new Range(currentBottomPosition1y - windowHeight, currentBottomPosition1y), 
 												  new Range(currentBottomPosition1x - windowWidth, currentBottomPosition1x));
+				
 				//get the area in mat2
 				Mat subMat2 = scaledImage2.submat(new Range(currentTopPosition2y, currentTopPosition2y + windowHeight), 
 												  new Range(currentTopPosition2x, currentTopPosition2x + windowWidth));
@@ -719,7 +734,6 @@ public class Registration {
 					windowWidth--;
 				}
 			}
-			
 			if (h < (int)height-1){
 				currentBottomPosition1y++;
 				currentTopPosition2y--;
@@ -731,7 +745,6 @@ public class Registration {
 			currentTopPosition2x = startTopPosition2x;
 			windowWidth = startWindowWidth;
 		}
-
 		return overlap;
 	}
 
@@ -749,6 +762,19 @@ public class Registration {
 		coords[5] = (int)(oldCoords[5]/oldH*h);
 		
 		return coords;
+	}
+	
+	private class ImageStructure{
+		ArrayList<Mat> scales;
+		Mat mat;
+		int width;
+		int height;
+		
+		public ImageStructure(Mat m){
+			this.mat = m;
+			this.width = m.width();
+			this.height = m.height();
+		}
 	}
 
 }

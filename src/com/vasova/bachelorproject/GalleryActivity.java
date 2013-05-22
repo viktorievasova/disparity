@@ -103,11 +103,11 @@ public class GalleryActivity extends Activity {
 			
 			registration.setImages(images);
 			
-			//imgForVisualization = registration.getImgForVisualization();
+			imgForVisualization = registration.getImgForVisualization();
 			//disparityMap = registration.getDisparityMap();
 			
-			//Intent intent = new Intent(this, GraphicsActivity.class);
-        	//startActivity(intent);
+			Intent intent = new Intent(this, GraphicsActivity.class);
+        	startActivity(intent);
 			
 		}else if (item == settingsItem){
 			Intent intent = new Intent(this, SettingsActivity.class);

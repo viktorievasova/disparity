@@ -46,8 +46,8 @@ public class MeshModel {
 		float z = 0f;
 		for (int h = 0; h < heigth; h++){
 			for (int w = 0; w < width; w++){
-				double[] v = disparity.get(h, w);
-				z = (float)(v[0]/500);
+				//double[] v = disparity.get(h, w);
+				//z = (float)(v[0]/500);
 				
 				//first triangle
 				vertices[verticesIndex++] = position_x;	// V1 - bottom left
