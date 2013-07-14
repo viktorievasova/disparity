@@ -1,11 +1,9 @@
 package com.vasova.bachelorproject;
 
-
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 import org.opencv.core.Mat;
 
-import android.content.Context;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLU;
@@ -22,7 +20,7 @@ public class Graphics_Renderer implements  GLSurfaceView.Renderer{
 	public float deltaX;
 	public float deltaY;
 	
-	public Graphics_Renderer(Context context, Mat origImg, Mat dispImg) {
+	public Graphics_Renderer(Mat origImg, Mat dispImg) {
 		//this.context = context;
 		this.mesh = new MeshModel(origImg, dispImg);
 	}
@@ -44,7 +42,7 @@ public class Graphics_Renderer implements  GLSurfaceView.Renderer{
 		gl.glLoadIdentity();
 
 		// Drawing
-		gl.glTranslatef(0.0f, 0.0f, -5.0f);
+		gl.glTranslatef(0.0f, 0.0f, -1.0f);
 		
 		gl.glRotatef(angleY, 0f, 1f, 0f); 
 		gl.glRotatef(angleX, 1f, 0f, 0f);				
@@ -53,6 +51,8 @@ public class Graphics_Renderer implements  GLSurfaceView.Renderer{
 
 	@Override
 	public void onSurfaceChanged(GL10 gl, int width, int height) {
+		GLES20.glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
+		
 		if(height == 0) {
 			height = 1;
 		}

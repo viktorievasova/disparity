@@ -9,17 +9,17 @@ import org.opencv.highgui.Highgui;
 import android.os.Bundle;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.GridView;
-import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.vasova.bachelorproject.Adapter.GridImage;
 
@@ -28,33 +28,35 @@ public class GalleryActivity extends Activity {
 
 	public static boolean inForeground = false;
 	
-	private MenuItem processItem;
-	private MenuItem settingsItem;
-	private MenuItem deleteItem;
-	
 	private Context context = this;
 	
-	public static Mat imgForVisualization;	
-	public static Mat disparityMap;
-	public static Mat result;
+	private static Mat imgForVisualization;	
+	private static Mat disparityMap;
 	
-	public static Registration registration;
+	public static Processing processing;
 	
 	private GridView gridView;
     private Adapter adapter;
    
-
     static ArrayList<String> files;
-	
+    private ArrayList<String> imagesForProcessing;
+    
+    private CalculationThread thread;
+    private static boolean newDataAvailable;
+    
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_gallery);
         inForeground = true;
-		registration = new Registration();
+		processing = new Processing();
         
         adapter = new Adapter(this);
-        files = MainActivity.galleryList;
+        if (MainActivity.galleryList == null){
+        	//---osetrit
+        }else{
+        	files = MainActivity.galleryList;
+        }
         //update image db
         ArrayList<GridImage> db_update = new ArrayList<GridImage>();
         for (String s : files) {
@@ -90,29 +92,28 @@ public class GalleryActivity extends Activity {
 	@Override 
 	public boolean onOptionsItemSelected(MenuItem item) {
 		//start the action for the selected files:
-		if (item == processItem){
-			ArrayList<String> selectedf = getSelectedFiles();
-			if (selectedf.size() < 2){
+		if (item.getItemId() == R.id.process){
+			imagesForProcessing = getSelectedFiles();
+			if (imagesForProcessing.size() < 2){
+				Toast.makeText(this, "At least two images must be selected.", Toast.LENGTH_SHORT).show();
 				return true;
 			}
 			
-			ArrayList<Mat> images = new ArrayList<Mat>();
-			for (int i = 0; i < selectedf.size(); i++){
-				images.add(Highgui.imread(selectedf.get(i)));
-			}
-			
-			registration.setImages(images);
-			
-			imgForVisualization = registration.getImgForVisualization();
-			//disparityMap = registration.getDisparityMap();
-			
 			Intent intent = new Intent(this, GraphicsActivity.class);
-        	startActivity(intent);
+			startActivity(intent);
 			
-		}else if (item == settingsItem){
+			thread = new CalculationThread();
+			thread.run();
+			
+		}else if (item.getItemId() == R.id.settings){
 			Intent intent = new Intent(this, SettingsActivity.class);
 			startActivity(intent);
-		}else if (item == deleteItem){
+		}else if (item.getItemId() == R.id.delete){
+			imagesForProcessing = getSelectedFiles();
+			if (imagesForProcessing.size() < 1){
+				Toast.makeText(this, "At least one image must be selected", Toast.LENGTH_SHORT).show();
+				return true;
+			}
 			AlertDialog.Builder builder = new AlertDialog.Builder(context);
 			builder.setTitle("Delete items");
 			builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
@@ -134,24 +135,30 @@ public class GalleryActivity extends Activity {
 			
 			AlertDialog aDialog = builder.create();
 			aDialog.show();
+		}else if (item.getItemId() == R.id.view){
+			imagesForProcessing = getSelectedFiles();
+			if (imagesForProcessing.size() < 2){
+				Toast.makeText(this, "At least two images must be selected.", Toast.LENGTH_SHORT).show();
+				return true;
+			}
+			
+			processing.setData(imagesForProcessing);
+			processing.startProcessing();
+			String path = processing.getTempResult().get(2);
+			Intent intent = new Intent(this, PreviewActivity.class);
+			intent.putExtra("filepath", path);
+        	startActivity(intent);
 		}
 		return true;
 	}
 	
 	@Override
-	public boolean onPrepareOptionsMenu(Menu menu) {
-		menu.clear();
-		processItem = menu.add("Process");
-		settingsItem = menu.add("Settings");
-		deleteItem = menu.add("Delete");
-		ArrayList<String> selectedf = getSelectedFiles();
-		if (selectedf.size() == 0){
-			deleteItem.setEnabled(false);
-		}else{
-			deleteItem.setEnabled(true);
-		}
+	public boolean onCreateOptionsMenu(Menu menu){
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.activity_gallery, menu);
 		return true;
 	}
+	
 	
 	private void deleteItems(){
 		ArrayList<String> selectedf = getSelectedFiles();
@@ -179,18 +186,30 @@ public class GalleryActivity extends Activity {
 				selectedF.add(gi.getImagePath());
 			}
 		}
-		
 		return selectedF;
 	}
 	
-	public static Mat getOriginal(){
-		return imgForVisualization;
-	}
 	
 	public static Mat getDisparity(){
 		return disparityMap;
 	}
 	
+	public static Mat getImgForVisualization(){
+		return imgForVisualization;
+	}
+	
+	public static void setImgForVisualization(Mat i){
+		imgForVisualization = i;
+		newDataAvailable = true;
+	}
+	
+	public static boolean areNewDataAvailable(){
+		return newDataAvailable;
+	}
+	
+	public static void setNewDataAvailable(boolean b){
+		newDataAvailable = b;
+	}
 	@Override
 	public void onPause()
     {
@@ -205,8 +224,21 @@ public class GalleryActivity extends Activity {
         super.onResume();
     }
 	
-	@Override
-	public void onStop(){
-		super.onStop();
+	
+	class CalculationThread extends Thread{
+		@Override
+	    public void run() {
+			boolean mi = processing.isSetMutualInformation();
+			processing = new Processing();
+			if(mi){
+				processing.setRegistrationParametr(Registration.mi_string);
+			}else{
+				processing.setRegistrationParametr(Registration.soad_string);
+			}
+			processing.setData(imagesForProcessing);
+			processing.startProcessing();
+			imgForVisualization = processing.getImgForVisualization();
+			setNewDataAvailable(true);
+	    }
 	}
 }

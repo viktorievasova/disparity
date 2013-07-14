@@ -28,10 +28,10 @@ public class Adapter extends BaseAdapter  {
         ViewHolder holder;
 
         if (convertView == null) {
-            convertView = mInflater.inflate(R.layout.galley_item, null);
+            convertView = mInflater.inflate(R.layout.gallery_item, null);
             holder = new ViewHolder();
             holder.image = (ImageView) convertView.findViewById(R.id.image);
-            holder.image.setScaleType(ImageView.ScaleType.CENTER_INSIDE);//CENTER_CROP);
+            holder.image.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
             holder.image.setPadding(2, 2, 2, 2);
             convertView.setTag(holder);
         } else {
@@ -43,9 +43,9 @@ public class Adapter extends BaseAdapter  {
     	holder.image.setImageBitmap(a_bitmap);
     	
         if (object.getState() == 1) {
-            holder.image.setBackgroundColor(Color.BLACK);
+        	holder.image.setBackgroundResource(R.drawable.background_img_gallery_pressed);
         } else {
-            holder.image.setBackgroundColor(Color.WHITE);
+        	holder.image.setBackgroundResource(R.drawable.background_img_gallery);
         }
         return convertView;
     }

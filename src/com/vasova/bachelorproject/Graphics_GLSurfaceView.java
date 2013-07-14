@@ -8,14 +8,21 @@ import android.view.MotionEvent;
 
 public class Graphics_GLSurfaceView extends GLSurfaceView{
 
-	Graphics_Renderer a_renderer;
-	float previousX;
-	float previousY;
+	private Graphics_Renderer a_renderer;
+	private float previousX;
+	//private float previousY;
+		
+	public Graphics_GLSurfaceView(Context context){
+		super(context);	    
+	}
 	
-	public Graphics_GLSurfaceView(Context context, Mat oImage, Mat dImage){
-			super(context);
-	        a_renderer = new Graphics_Renderer(context, oImage, dImage);
-	        setRenderer(a_renderer);	    
+	public void setImageData(Mat oImage, Mat dImage){
+		if (a_renderer == null){
+			a_renderer = new Graphics_Renderer(oImage, dImage);
+			setRenderer(a_renderer);
+		}else{
+			//changeImageData(oImage, dImage);
+		}
 	}
 	
 	@Override
@@ -28,7 +35,7 @@ public class Graphics_GLSurfaceView extends GLSurfaceView{
 	public boolean onTouchEvent(MotionEvent event){
 		if (event != null){
 			float x = event.getX();
-			float y = event.getY();
+			//float y = event.getY();
 			
 			if(event.getAction() == MotionEvent.ACTION_MOVE){
 				
@@ -38,17 +45,16 @@ public class Graphics_GLSurfaceView extends GLSurfaceView{
 					
 					a_renderer.angleY += deltaX;
 					//a_renderer.angleX += deltaY;
-					
 				}
-				
 			}
 			previousX = x;
-			previousY = y;
+			//previousY = y;
 			
 			return true;
 		}else{
 			return super.onTouchEvent(event);
 		}
 	}
+	
 	
 }

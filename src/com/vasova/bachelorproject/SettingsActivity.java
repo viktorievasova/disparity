@@ -26,8 +26,8 @@ public class SettingsActivity extends Activity {
 		checkbox_soad = (CheckBox) findViewById(R.id.checkbox_sum_of_absolute_differences);
 		checkbox_mi = (CheckBox) findViewById(R.id.checkbox_mutual_information);
 		
-		checkbox_soad.setChecked(GalleryActivity.registration.isSetSumOfAbsoluteDiff());
-		checkbox_mi.setChecked(GalleryActivity.registration.isSetMutualInformation());
+		checkbox_soad.setChecked(GalleryActivity.processing.isSetSumOfAbsoluteDiff());
+		checkbox_mi.setChecked(GalleryActivity.processing.isSetMutualInformation());
 		
 		checkboxArray[0] = checkbox_soad;
 		checkboxArray[1] = checkbox_mi;
@@ -75,9 +75,9 @@ public class SettingsActivity extends Activity {
 			  public void onClick(View v) {
 				  
 				  if (sum_of_absolute_differences){
-					  GalleryActivity.registration.setRegistrationParametr(Registration.soad_string);
+					  GalleryActivity.processing.setRegistrationParametr(Registration.soad_string);
 				  }else if (mutual_information){
-					  GalleryActivity.registration.setRegistrationParametr(Registration.mi_string);
+					  GalleryActivity.processing.setRegistrationParametr(Registration.mi_string);
 				  }
 				 finish();
 				  
