@@ -13,9 +13,11 @@ import org.opencv.core.Scalar;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
+import android.util.Log;
+
 public class Registration {
 	
-	String registration_tag = "Registration";
+	String TAG = "Registration";
 	
 	public static String mi_string = "mutual information";
 	public static String soad_string = "sum_of_absolute_differences";
@@ -23,16 +25,13 @@ public class Registration {
 	private boolean sum_of_absolute_differences;
 	private boolean mutual_information;
 	
-	private ArrayList<Mat> originalImages;
-	
-	
-	private ArrayList<double[]> overlaps;
+	//private ArrayList<double[]> overlaps;
 	private double[] areaScore;
 	private Point[] upperEdges;
 	
 	private Mat imageWithTheLargestInformation;
 	
-	private ArrayList<ImageStructure> images;
+	private ArrayList<ImageStructure> imageData;
 	
 	private ArrayList<String> tempResult = new ArrayList<String>();
 	
@@ -46,10 +45,10 @@ public class Registration {
 		mutual_information = false;
 	}
 	
-	public void setImages(ArrayList<String> imagePaths){
-		this.originalImages = readImages(imagePaths);
-		areaScore = new double[originalImages.size()];
-		upperEdges = new Point[originalImages.size()];
+	public void setImageData(ArrayList<ImageStructure> imgData){
+		this.imageData = imgData;
+		areaScore = new double[imageData.size()];
+		upperEdges = new Point[imageData.size()];
 		register();
 		
 		int indexOfMaxScore = -1;
@@ -59,37 +58,43 @@ public class Registration {
 				indexOfMaxScore = i;
 			}
 		}
-		imageWithTheLargestInformation = this.images.get(indexOfMaxScore).mat;
+		imageWithTheLargestInformation = Highgui.imread(this.imageData.get(indexOfMaxScore).path);
 		System.out.println(indexOfMaxScore);
 	}
 	
-	private ArrayList<Mat> readImages(ArrayList<String> paths){
+	public ArrayList<ImageStructure> getData(){
+		return this.imageData;
+	}
+	
+	private ArrayList<Mat> readImages(ArrayList<ImageStructure> imgData){
 		ArrayList<Mat> images = new ArrayList<Mat>();
-		for (int i = 0; i < paths.size(); i++){
-			images.add(Highgui.imread(paths.get(i)));
+		for (int i = 0; i < imgData.size(); i++){
+			images.add(Highgui.imread(imgData.get(i).path));
 		}
 		return images;
 	}
+	
 	private void register(){
 		System.out.println("registration started at " + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) );
-		images = new ArrayList<Registration.ImageStructure>();
 		Mat image;
-		for(int i = 0; i < originalImages.size(); i++){
-			image = originalImages.get(i);
-			ImageStructure imgStruct = new ImageStructure(image.clone());
-			imgStruct.scales = new ArrayList<Mat>();
-			imgStruct.scales.add(image.clone());
+		ImageStructure imgStr;
+		for(int i = 0; i < imageData.size(); i++){
+			imgStr = imageData.get(i);
+			image = Highgui.imread(imgStr.path);
+			imgStr.width = image.width();
+			imgStr.height = image.height();
+			imgStr.scales = new ArrayList<Mat>();
+			imgStr.scales.add(image.clone());
 			for(int s = 0; s < 4; s++){
 				Imgproc.pyrDown(image, image);
-				imgStruct.scales.add(image.clone());
+				imgStr.scales.add(image.clone());
 			}
-			images.add(imgStruct);
 		}
 		getOverlaps();
 		
 		System.out.println("registration ended at " + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) );
-		for (int i = 0; i < overlaps.size(); i++){
-			double[] o = overlaps.get(i);
+		for (int i = 0; i < this.imageData.size() - 1; i++){
+			double[] o = this.imageData.get(i).relativePositionWithNeighbour;
 			System.out.println("[ "+ o[0] +", " + o[1] +", " + o[2] +", " + o[3] +", " + o[4] +", " + o[5] +" ]");
 		}
 		for (int i = 0; i < upperEdges.length; i++){
@@ -151,131 +156,119 @@ public class Registration {
 	private void getOverlaps(){
 		ImageStructure img1;
 		ImageStructure img2;
-		overlaps = new ArrayList<double[]>();
-		for(int i = 0; i < originalImages.size() - 1; i++){
+		
+		Mat mat1;
+		Mat mat2;
+		
+		//overlaps = new ArrayList<double[]>();
+		for(int i = 0; i < imageData.size() - 1; i++){
 			int j = i+1;
 			
-			img1 = images.get(i);
-			img2 = images.get(j);
-
+			img1 = imageData.get(i);
+			img2 = imageData.get(j);
+			
+			mat1 = Highgui.imread(img1.path);
+			mat2 = Highgui.imread(img2.path);
 			
 			double[] overlap = new double[6];
 			if (this.sum_of_absolute_differences){
 				overlap = getOverlapSOAD(img1, img2);
 				
 			}else if(this.mutual_information){
-				overlap = getOverlapMI(img1.mat, img2.mat);
+				overlap = getOverlapMI(img1, img2);
 			}
-			overlaps.add(overlap);
+			overlap[0] = overlap[0] - 1;
+			overlap[1] = overlap[1] - 1;
+			
+			//overlaps.add(overlap);
+			img1.relativePositionWithNeighbour = overlap;
 			
 			if (i==0){
 				upperEdges[i] = new Point(0,0);
-				Mat left = getLeftImage(img1.mat, img2.mat, overlap);
-				Mat upper = getUpperImage(img1.mat, img2.mat, overlap);
-				if (left.equals(img2.mat)){
-					if (upper.equals(img2.mat)){
+				Mat left = getLeftImage(mat1, mat2, overlap);
+				Mat upper = getUpperImage(mat1, mat2, overlap);
+				if (left.equals(mat2)){
+					if (upper.equals(mat2)){
 						upperEdges[j] = new Point(0-(img2.width - overlap[4]), 0-(img2.height - overlap[5]));
 					}else{
 						upperEdges[j] = new Point(0-(img2.width - overlap[4]), 0+(img2.height - overlap[5]));
 					}
 				}else{
-					if (upper.equals(img2.mat)){
+					if (upper.equals(mat2)){
 						upperEdges[j] = new Point(0+(img2.width - overlap[4]), 0-(img2.height - overlap[5]));
 					}else{
 						upperEdges[j] = new Point(0+(img2.width - overlap[4]), 0+(img2.height - overlap[5]));
 					}
 				}
 			}else{
-				Mat left = getLeftImage(img1.mat, img2.mat, overlap);
-				Mat upper = getUpperImage(img1.mat, img2.mat, overlap);
-				if (left.equals(img2.mat)){
-					if (upper.equals(img2.mat)){
+				Mat left = getLeftImage(mat1, mat2, overlap);
+				Mat upper = getUpperImage(mat1, mat2, overlap);
+				if (left.equals(mat2)){
+					if (upper.equals(mat2)){
 						upperEdges[j] = new Point(upperEdges[j-1].x - (img2.width - overlap[4]), upperEdges[j-1].y - (img2.height - overlap[5]) );
 					}else{
 						upperEdges[j] = new Point(upperEdges[j-1].x - (img2.width - overlap[4]), upperEdges[j-1].y + (img2.height - overlap[5]) );
 					}
 				}else{
-					if (upper.equals(img2.mat)){
+					if (upper.equals(mat2)){
 						upperEdges[j] = new Point(upperEdges[j-1].x + (img2.width - overlap[4]), upperEdges[j-1].y - (img2.height - overlap[5]));
 					}else{
 						upperEdges[j] = new Point(upperEdges[j-1].x + (img2.width - overlap[4]), upperEdges[j-1].y + (img2.height - overlap[5]));
 					}
 				}
 			}
-			
+			System.out.println("registration actually ended at " + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) );
 			//----------------debugovani - zakresleni prekryti----------------
 			//[bottomX of img1, bottomY of img1, topX of img2, topY of img2, width, height]
-			Mat mat1 = img1.mat.clone();
+			Mat result1 = mat1.clone();
 			double bX = overlap[0];
 			double bY = overlap[1];
 			double bX_w = overlap[0] - overlap[4];
 			double bY_h = overlap[1] - overlap[5];
-			Core.line(mat1, new Point(bX, bY),  new Point(bX_w, bY), new Scalar(0d, 0d, 1d));
-			Core.line(mat1, new Point(bX, bY),  new Point(bX, bY_h), new Scalar(0d, 0d, 1d));
-			Core.line(mat1, new Point(bX_w, bY_h),  new Point(bX_w, bY), new Scalar(0d, 0d, 1d));
-			Core.line(mat1, new Point(bX_w, bY_h),  new Point(bX, bY_h), new Scalar(0d, 0d, 1d));
+			Core.line(result1, new Point(bX, bY),  new Point(bX_w, bY), new Scalar(0d, 0d, 1d));
+			Core.line(result1, new Point(bX, bY),  new Point(bX, bY_h), new Scalar(0d, 0d, 1d));
+			Core.line(result1, new Point(bX_w, bY_h),  new Point(bX_w, bY), new Scalar(0d, 0d, 1d));
+			Core.line(result1, new Point(bX_w, bY_h),  new Point(bX, bY_h), new Scalar(0d, 0d, 1d));
 			
-			Mat mat2 = img2.mat.clone();
+			Mat result2 = mat2.clone();
 			double tX = overlap[2];
 			double tY = overlap[3];
 			double tX_w = overlap[2] + overlap[4];
 			double tY_h = overlap[3] + overlap[5];
-			Core.line(mat2, new Point(tX, tY),  new Point(tX_w, tY), new Scalar(0d, 0d, 1d));
-			Core.line(mat2, new Point(tX, tY),  new Point(tX, tY_h), new Scalar(0d, 0d, 1d));
-			Core.line(mat2, new Point(tX_w, tY_h),  new Point(tX_w, tY), new Scalar(0d, 0d, 1d));
-			Core.line(mat2, new Point(tX_w, tY_h),  new Point(tX, tY_h), new Scalar(0d, 0d, 1d));
+			Core.line(result2, new Point(tX, tY),  new Point(tX_w, tY), new Scalar(0d, 0d, 1d));
+			Core.line(result2, new Point(tX, tY),  new Point(tX, tY_h), new Scalar(0d, 0d, 1d));
+			Core.line(result2, new Point(tX_w, tY_h),  new Point(tX_w, tY), new Scalar(0d, 0d, 1d));
+			Core.line(result2, new Point(tX_w, tY_h),  new Point(tX, tY_h), new Scalar(0d, 0d, 1d));
 			
 			
-			Highgui.imwrite("mnt/sdcard/Pictures/Gallery/overlap1.jpg", mat1);
-			Highgui.imwrite("mnt/sdcard/Pictures/Gallery/overlap2.jpg", mat2);
+			Highgui.imwrite("mnt/sdcard/Pictures/Gallery/overlap1.jpg", result1);
+			Highgui.imwrite("mnt/sdcard/Pictures/Gallery/overlap2.jpg", result2);
 			
 			tempResult.add("mnt/sdcard/Pictures/Gallery/overlap1.jpg");
 			tempResult.add("mnt/sdcard/Pictures/Gallery/overlap2.jpg");
 			
-			int newwidth = mat1.width() + (int)Math.abs(upperEdges[i].x) + (int)Math.abs(upperEdges[j].x);
-			int newheight = mat1.height() + (int)Math.abs(upperEdges[i].y) + (int)Math.abs(upperEdges[j].y);
+			int x2 = (int)overlap[2];
+			int y2 = (int)overlap[3];
 			
-			double beginX = upperEdges[j].x;
-			double beginY = upperEdges[j].y;
+			Mat viewoverlap = mat1.clone();
+			Mat m = mat2.clone();
 			
-			int x2 = (int)Math.abs(upperEdges[j].x);
-			int y2 = (int)Math.abs(upperEdges[j].y);
-			
-			//zacni kdyz xbude vetsi= startX 
-			int startX = (int)beginX;
-			if (startX < 0) startX = 0;
-			int startY = (int)beginY;
-			if (startY < 0) startY = 0;
-			
-			Mat viewoverlap = img1.mat.clone();
-			Mat m = img2.mat.clone();
-			
-			for (int h = 0; h < viewoverlap.height()-1; h++){
-				for(int w = 0; w < viewoverlap.width()-1; w++){
-					if (w > startX && x2 < viewoverlap.width()-1 && h > startY && y2 < viewoverlap.height()-1){
-						double [] color1 = viewoverlap.get(h, w);
-						double [] color2 = m.get(y2, x2);
-						double [] newColor = {((color1[0] + color2[0])/2), ((color1[1] + color2[1])/2), ((color1[2] + color2[2])/2)};
-						viewoverlap.put(h, w, newColor);
-						x2++;
-					}
-				}
-				if(h > startY){
-					y2++;
-					x2 = (int)Math.abs(upperEdges[j].x);
+			for (int h = (int)bY_h; h < bY-1; h++){
+				for(int w = (int)bX_w; w < bX-1; w++){
+					//Log.i("registration", "img1:[" +w+", "+h+"], img2:["+x2+", "+y2+"]");
+					double [] color1 = viewoverlap.get(h, w);
+					double [] color2 = m.get(y2, x2);
+					double [] newColor = {((color1[0] + color2[0])/2), ((color1[1] + color2[1])/2), ((color1[2] + color2[2])/2)};
+					viewoverlap.put(h, w, newColor);
+					x2++;
 				}
 				
+				y2++;
+				x2 = (int)overlap[2];
 			}
 			Highgui.imwrite("mnt/sdcard/Pictures/Gallery/viewOverlap.jpg", viewoverlap);
 			tempResult.add("mnt/sdcard/Pictures/Gallery/viewOverlap.jpg");
 			
-			//deleteonexit:
-			File f = new File("mnt/sdcard/Pictures/Gallery/overlap1.jpg");
-	        f.deleteOnExit();
-	        f = new File("mnt/sdcard/Pictures/Gallery/overlap2.jpg");
-	        f.deleteOnExit();
-	        f = new File("mnt/sdcard/Pictures/Gallery/viewOverlap.jpg");
-	        f.deleteOnExit();
 			//---------------- --------------------- ----------------
 			
 			double score = overlap[4] * overlap[5];
@@ -285,7 +278,7 @@ public class Registration {
 	
 	}
 	
-	private double[] getOverlapMI(Mat mat1, Mat mat2){
+	private double[] getOverlapMI(ImageStructure image1, ImageStructure image2){
 		//TODO
 		return new double[] {0d, 0d, 0d, 0d, 0d, 0d};
 	}
@@ -546,19 +539,6 @@ public class Registration {
 		coords[5] = (int)(oldCoords[5]/oldH*h);
 		
 		return coords;
-	}
-	
-	private class ImageStructure{
-		ArrayList<Mat> scales;
-		Mat mat;
-		int width;
-		int height;
-		
-		public ImageStructure(Mat m){
-			this.mat = m;
-			this.width = m.width();
-			this.height = m.height();
-		}
 	}
 
 }

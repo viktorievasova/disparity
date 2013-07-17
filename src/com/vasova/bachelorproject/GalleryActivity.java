@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.ArrayList;
 
 import org.opencv.core.Mat;
-import org.opencv.highgui.Highgui;
 
 import android.os.Bundle;
 import android.app.Activity;
@@ -39,10 +38,12 @@ public class GalleryActivity extends Activity {
     private Adapter adapter;
    
     static ArrayList<String> files;
-    private ArrayList<String> imagesForProcessing;
+    private ArrayList<ImageStructure> imagesForProcessing;
     
     private CalculationThread thread;
     private static boolean newDataAvailable;
+    
+    //private Handler handler;
     
 	@Override
     public void onCreate(Bundle savedInstanceState) {
@@ -87,6 +88,7 @@ public class GalleryActivity extends Activity {
                 adapter.notifyDataSetChanged();
             }
         });
+        
     }
 	
 	@Override 
@@ -141,13 +143,20 @@ public class GalleryActivity extends Activity {
 				Toast.makeText(this, "At least two images must be selected.", Toast.LENGTH_SHORT).show();
 				return true;
 			}
-			
 			processing.setData(imagesForProcessing);
 			processing.startProcessing();
+			
+			Intent intent = new Intent(this, PreviewActivity.class);
+			startActivity(intent);
+			
+			thread = new CalculationThread();
+			thread.run();
+			/*
 			String path = processing.getTempResult().get(2);
 			Intent intent = new Intent(this, PreviewActivity.class);
 			intent.putExtra("filepath", path);
         	startActivity(intent);
+        	*/
 		}
 		return true;
 	}
@@ -161,9 +170,9 @@ public class GalleryActivity extends Activity {
 	
 	
 	private void deleteItems(){
-		ArrayList<String> selectedf = getSelectedFiles();
+		ArrayList<ImageStructure> selectedf = getSelectedFiles();
 		for(int i = 0; i < selectedf.size(); i++){
-			String path = selectedf.get(i);
+			String path = selectedf.get(i).path;
 			File f = new File(path);
 			if (f.delete()){
 				for(GridImage gi : MainActivity.imagesDB){
@@ -178,12 +187,14 @@ public class GalleryActivity extends Activity {
 		}
 	}
 	
-	private ArrayList<String> getSelectedFiles(){
-		ArrayList<String> selectedF = new ArrayList<String>();
+	private ArrayList<ImageStructure> getSelectedFiles(){
+		ArrayList<ImageStructure> selectedF = new ArrayList<ImageStructure>();
 		for (int i = 0; i < MainActivity.imagesDB.size(); i++){
 			GridImage gi = MainActivity.imagesDB.get(i);
 			if (gi.getState() == 1){
-				selectedF.add(gi.getImagePath());
+				ImageStructure str = new ImageStructure();
+				str.path = gi.getImagePath();
+				selectedF.add(str);
 			}
 		}
 		return selectedF;
@@ -237,8 +248,6 @@ public class GalleryActivity extends Activity {
 			}
 			processing.setData(imagesForProcessing);
 			processing.startProcessing();
-			imgForVisualization = processing.getImgForVisualization();
-			setNewDataAvailable(true);
 	    }
 	}
 }

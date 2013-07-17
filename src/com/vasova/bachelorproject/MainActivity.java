@@ -285,7 +285,7 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 	     
     /*metoda, ktera snima obrazek*/
     private void takePicture(){
-    	System.out.println("method to take a picture was started");
+    	Log.d(TAG, "method to take a picture was started");
     	if (GalleryActivity.inForeground || inBackground ||  !isCameraRunning){
     		return;
     	}
@@ -317,7 +317,7 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 	    		String timeOfTakingPicture = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 	    		String filePath = dirPath + "/img" + timeOfTakingPicture + ".jpg";
 	    		if (Highgui.imwrite(filePath, pictureToWrite)){
-		    		System.out.println("image saved with path: " + filePath);
+		    		Log.d(TAG, "image saved with path: " + filePath);
 		    		addImgToList(filePath);
 		    		if(!autoCapturingStarted){
 		    			Toast.makeText(this, messageTakenPicture, Toast.LENGTH_SHORT).show();
@@ -331,7 +331,7 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 	                
 	    		}
     		}catch(Exception e){
-    			System.out.println("an error occured while writting the file. " + "exception:  " + e);
+    			Log.d(TAG, "an error occured while writting the file. " + "exception:  " + e);
     		}
     	}
     }
@@ -393,9 +393,7 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
     private void writeData(){
 		try{
 			FileOutputStream fos = openFileOutput(dataFileName, MODE_PRIVATE);
-			//FileOutputStream fosSelected = openFileOutput(selectedFilesFileName, MODE_PRIVATE);
 			BufferedWriter bffw = new BufferedWriter(new OutputStreamWriter(fos));
-			//BufferedWriter bffwSelected = new BufferedWriter(new OutputStreamWriter(fosSelected));
 			
 			String line;
 			for (int i = 0; i < galleryList.size(); i++){
@@ -407,16 +405,9 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 				}
 			}
 			
-			/*
-			for (int i = 0; i < selectedFiles.size(); i++){
-				line = selectedFiles.get(i) + "\n";
-				bffwSelected.write(line);
-			}
-			*/
 			bffw.close();
 			fos.close();
-			//bffwSelected.close();
-			//fosSelected.close();
+			
 		}catch(Exception e){
 			Log.d("CameraApp","failed to write data");
 		}
@@ -429,27 +420,19 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 			galleryList = new ArrayList<String>();
 			BufferedReader bffr = new BufferedReader(new InputStreamReader(fis));
 			
-			int num = 0;
 			String line;
 			String filePath;
 			while ((line = bffr.readLine()) != null){
 				filePath = line;
 				File f = new File(filePath);
-				System.out.print(filePath + " : ");
 				if (f.exists()){
-					System.out.println("exists");
-					num++;
 					galleryList.add(filePath);	
-				}else{
-					System.out.println("does not exist");
 				}
 			}
-			System.out.println("num of files " + num);
-			String lineSelected;
 			bffr.close();
 			fis.close();
 		}catch(Exception e){
-			System.out.println(e);
+			Log.d(TAG, "exception " + e);
 		}
 	}
 	
