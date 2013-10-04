@@ -14,10 +14,13 @@
     <string name="capture">Capture</string>
     <string name="title_activity_lesson_seven">LessonSevenActivity</string>
     <string name="startcapturing_text">Press to start auto-capturing</string>
-    <string name="process">Process</string>
     <string name="settings">Settings</string>
     <string name="delete">Delete</string>
-    <string name="view">View</string>
+    <string name="view2d">2D View</string>
+    <string name="view3d">3D View</string>
     <string name="title_activity_preview">PreviewActivity</string>
+    <string name="sample_data">Sample Data</string>
+    <string name="gallery">Gallery</string>
+    <string name="title_activity_sample_data_gallery">SampleDataGallery</string>
 
 </resources>

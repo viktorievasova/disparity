@@ -1,81 +1,36 @@
 package com.vasova.bachelorproject;
 
-import java.io.File;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
-
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
-import org.opencv.core.Point;
 import org.opencv.core.Range;
-import org.opencv.core.Scalar;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
-
-import android.util.Log;
-
 public class Registration {
 	
 	String TAG = "Registration";
-	
-	public static String mi_string = "mutual information";
-	public static String soad_string = "sum_of_absolute_differences";
-	
-	private boolean sum_of_absolute_differences;
-	private boolean mutual_information;
-	
-	//private ArrayList<double[]> overlaps;
-	private double[] areaScore;
-	private Point[] upperEdges;
-	
-	private Mat imageWithTheLargestInformation;
-	
 	private ArrayList<ImageStructure> imageData;
-	
-	private ArrayList<String> tempResult = new ArrayList<String>();
-	
-	public ArrayList<String> getTempResult(){
-		return tempResult;
-	}
-	
-	public Registration(){
-		//sum_of_absolute_differences the default method of registration
-		sum_of_absolute_differences = true;
-		mutual_information = false;
-	}
 	
 	public void setImageData(ArrayList<ImageStructure> imgData){
 		this.imageData = imgData;
-		areaScore = new double[imageData.size()];
-		upperEdges = new Point[imageData.size()];
 		register();
-		
-		int indexOfMaxScore = -1;
-		double score = 0;
-		for (int i = 0; i < areaScore.length; i++){
-			if (areaScore[i] >= score){
-				indexOfMaxScore = i;
-			}
-		}
-		imageWithTheLargestInformation = Highgui.imread(this.imageData.get(indexOfMaxScore).path);
-		System.out.println(indexOfMaxScore);
 	}
 	
+	/**
+	 * Returns the updated set of input data.
+	 * After registration new information such as the relative position of the neighbouring images or scale-space for the image
+	 * is stored in the ArrayList<ImageStructure> imageData.
+	 * To use this information in the further processing, it is necessary to get the current version of the input data-set. 
+	 * @return an ArrayList of the updated images.
+	 */
 	public ArrayList<ImageStructure> getData(){
 		return this.imageData;
 	}
 	
-	private ArrayList<Mat> readImages(ArrayList<ImageStructure> imgData){
-		ArrayList<Mat> images = new ArrayList<Mat>();
-		for (int i = 0; i < imgData.size(); i++){
-			images.add(Highgui.imread(imgData.get(i).path));
-		}
-		return images;
-	}
-	
+	/**
+	 * This method starts the process of the image registration.
+	 */
 	private void register(){
-		System.out.println("registration started at " + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) );
 		Mat image;
 		ImageStructure imgStr;
 		for(int i = 0; i < imageData.size(); i++){
@@ -85,30 +40,22 @@ public class Registration {
 			imgStr.height = image.height();
 			imgStr.scales = new ArrayList<Mat>();
 			imgStr.scales.add(image.clone());
-			for(int s = 0; s < 4; s++){
+			while(image.width() > 17 && image.height() > 17){
 				Imgproc.pyrDown(image, image);
 				imgStr.scales.add(image.clone());
 			}
 		}
 		getOverlaps();
-		
-		System.out.println("registration ended at " + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) );
-		for (int i = 0; i < this.imageData.size() - 1; i++){
-			double[] o = this.imageData.get(i).relativePositionWithNeighbour;
-			System.out.println("[ "+ o[0] +", " + o[1] +", " + o[2] +", " + o[3] +", " + o[4] +", " + o[5] +" ]");
-		}
-		for (int i = 0; i < upperEdges.length; i++){
-			Point edge = upperEdges[i];
-			System.out.println( i + "->> [" + edge.x + ", " + edge.y + "]");
-		}
-
 	}
 	
-	public Mat getImgForVisualization(){
-		//return imageWithTheLargestInformation;
-		return Highgui.imread(tempResult.get(2));
-	}
 	
+	/**
+	 * Returns the image which is situated on the left side (in the sense of their relative position). 
+	 * @param img1 the first image.
+	 * @param img2 the second image.
+	 * @param overlap the overlap of img1 and img2.
+	 * @return one of the images which is situated on the left side from the other one.
+	 */
 	private Mat getLeftImage(Mat img1, Mat img2, double[] overlap){
 		Mat leftMat;
 		double bottomXinImg1 = overlap[0];
@@ -121,6 +68,13 @@ public class Registration {
 		return leftMat;
 	}
 	
+	/**
+	 * Returns the image which is situated on above (in the sense of their relative position). 
+	 * @param img1 the first image.
+	 * @param img2 the second image.
+	 * @param overlap the overlap of img1 and img2.
+	 * @return one of the images which is situated above the other one.
+	 */
 	private Mat getUpperImage(Mat img1, Mat img2, double[] overlap){
 		Mat upperMat;
 		double bottomYinImg1 = overlap[1];
@@ -133,164 +87,34 @@ public class Registration {
 		return upperMat;
 	}
 	
-	
-	
-	public boolean isSetSumOfAbsoluteDiff(){
-		return this.sum_of_absolute_differences;
-	}
-	
-	public boolean isSetMutualInformation(){
-		return this.mutual_information;
-	}
-	
-	public void setRegistrationParametr(String s){
-		if (s.equals(mi_string)){
-			mutual_information = true;
-			sum_of_absolute_differences = false;
-		}else if (s.equals(soad_string)){
-			sum_of_absolute_differences = true;
-			mutual_information = false;
-		}
-	}
-	
+	/**
+	 * Finds the overlap for every neighbouring images in the input data-set.
+	 */
 	private void getOverlaps(){
 		ImageStructure img1;
 		ImageStructure img2;
 		
-		Mat mat1;
-		Mat mat2;
-		
-		//overlaps = new ArrayList<double[]>();
 		for(int i = 0; i < imageData.size() - 1; i++){
 			int j = i+1;
-			
 			img1 = imageData.get(i);
 			img2 = imageData.get(j);
-			
-			mat1 = Highgui.imread(img1.path);
-			mat2 = Highgui.imread(img2.path);
-			
 			double[] overlap = new double[6];
-			if (this.sum_of_absolute_differences){
-				overlap = getOverlapSOAD(img1, img2);
-				
-			}else if(this.mutual_information){
-				overlap = getOverlapMI(img1, img2);
-			}
+			overlap = getOverlap(img1, img2);
 			overlap[0] = overlap[0] - 1;
 			overlap[1] = overlap[1] - 1;
-			
-			//overlaps.add(overlap);
-			img1.relativePositionWithNeighbour = overlap;
-			
-			if (i==0){
-				upperEdges[i] = new Point(0,0);
-				Mat left = getLeftImage(mat1, mat2, overlap);
-				Mat upper = getUpperImage(mat1, mat2, overlap);
-				if (left.equals(mat2)){
-					if (upper.equals(mat2)){
-						upperEdges[j] = new Point(0-(img2.width - overlap[4]), 0-(img2.height - overlap[5]));
-					}else{
-						upperEdges[j] = new Point(0-(img2.width - overlap[4]), 0+(img2.height - overlap[5]));
-					}
-				}else{
-					if (upper.equals(mat2)){
-						upperEdges[j] = new Point(0+(img2.width - overlap[4]), 0-(img2.height - overlap[5]));
-					}else{
-						upperEdges[j] = new Point(0+(img2.width - overlap[4]), 0+(img2.height - overlap[5]));
-					}
-				}
-			}else{
-				Mat left = getLeftImage(mat1, mat2, overlap);
-				Mat upper = getUpperImage(mat1, mat2, overlap);
-				if (left.equals(mat2)){
-					if (upper.equals(mat2)){
-						upperEdges[j] = new Point(upperEdges[j-1].x - (img2.width - overlap[4]), upperEdges[j-1].y - (img2.height - overlap[5]) );
-					}else{
-						upperEdges[j] = new Point(upperEdges[j-1].x - (img2.width - overlap[4]), upperEdges[j-1].y + (img2.height - overlap[5]) );
-					}
-				}else{
-					if (upper.equals(mat2)){
-						upperEdges[j] = new Point(upperEdges[j-1].x + (img2.width - overlap[4]), upperEdges[j-1].y - (img2.height - overlap[5]));
-					}else{
-						upperEdges[j] = new Point(upperEdges[j-1].x + (img2.width - overlap[4]), upperEdges[j-1].y + (img2.height - overlap[5]));
-					}
-				}
-			}
-			System.out.println("registration actually ended at " + new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date()) );
-			//----------------debugovani - zakresleni prekryti----------------
-			//[bottomX of img1, bottomY of img1, topX of img2, topY of img2, width, height]
-			Mat result1 = mat1.clone();
-			double bX = overlap[0];
-			double bY = overlap[1];
-			double bX_w = overlap[0] - overlap[4];
-			double bY_h = overlap[1] - overlap[5];
-			Core.line(result1, new Point(bX, bY),  new Point(bX_w, bY), new Scalar(0d, 0d, 1d));
-			Core.line(result1, new Point(bX, bY),  new Point(bX, bY_h), new Scalar(0d, 0d, 1d));
-			Core.line(result1, new Point(bX_w, bY_h),  new Point(bX_w, bY), new Scalar(0d, 0d, 1d));
-			Core.line(result1, new Point(bX_w, bY_h),  new Point(bX, bY_h), new Scalar(0d, 0d, 1d));
-			
-			Mat result2 = mat2.clone();
-			double tX = overlap[2];
-			double tY = overlap[3];
-			double tX_w = overlap[2] + overlap[4];
-			double tY_h = overlap[3] + overlap[5];
-			Core.line(result2, new Point(tX, tY),  new Point(tX_w, tY), new Scalar(0d, 0d, 1d));
-			Core.line(result2, new Point(tX, tY),  new Point(tX, tY_h), new Scalar(0d, 0d, 1d));
-			Core.line(result2, new Point(tX_w, tY_h),  new Point(tX_w, tY), new Scalar(0d, 0d, 1d));
-			Core.line(result2, new Point(tX_w, tY_h),  new Point(tX, tY_h), new Scalar(0d, 0d, 1d));
-			
-			
-			Highgui.imwrite("mnt/sdcard/Pictures/Gallery/overlap1.jpg", result1);
-			Highgui.imwrite("mnt/sdcard/Pictures/Gallery/overlap2.jpg", result2);
-			
-			tempResult.add("mnt/sdcard/Pictures/Gallery/overlap1.jpg");
-			tempResult.add("mnt/sdcard/Pictures/Gallery/overlap2.jpg");
-			
-			int x2 = (int)overlap[2];
-			int y2 = (int)overlap[3];
-			
-			Mat viewoverlap = mat1.clone();
-			Mat m = mat2.clone();
-			
-			for (int h = (int)bY_h; h < bY-1; h++){
-				for(int w = (int)bX_w; w < bX-1; w++){
-					//Log.i("registration", "img1:[" +w+", "+h+"], img2:["+x2+", "+y2+"]");
-					double [] color1 = viewoverlap.get(h, w);
-					double [] color2 = m.get(y2, x2);
-					double [] newColor = {((color1[0] + color2[0])/2), ((color1[1] + color2[1])/2), ((color1[2] + color2[2])/2)};
-					viewoverlap.put(h, w, newColor);
-					x2++;
-				}
-				
-				y2++;
-				x2 = (int)overlap[2];
-			}
-			Highgui.imwrite("mnt/sdcard/Pictures/Gallery/viewOverlap.jpg", viewoverlap);
-			tempResult.add("mnt/sdcard/Pictures/Gallery/viewOverlap.jpg");
-			
-			//---------------- --------------------- ----------------
-			
-			double score = overlap[4] * overlap[5];
-			areaScore[i] += score;
-			areaScore[j] += score;
+			img1.relative_position_with_neighbour = overlap;
 		}
 	
 	}
 	
-	private double[] getOverlapMI(ImageStructure image1, ImageStructure image2){
-		//TODO
-		return new double[] {0d, 0d, 0d, 0d, 0d, 0d};
-	}
-	private float computeShannonEntropy(Mat r, Mat g, Mat b){
-        float entropy = 0.0f;
-        //TODO
-        return entropy;
-
-    }
-
-	
-	private double[] getOverlapSOAD(ImageStructure image1, ImageStructure image2){
+	/**
+	 * Finds the overlap of two images.
+	 * @param image1 the first image.
+	 * @param image2 the second image.
+	 * @return an array representing the overlap: x and y coordinate of the bottom right corner of the overlap in the first image,
+	 * x and y coordinate of the top left corner of the overlap in the second image, the width sand height of the overlap.
+	 */
+	private double[] getOverlap(ImageStructure image1, ImageStructure image2){
 		double[] overlap = new double[6];
 		double[] previousOverlap = new double[0];
 		double[] currentOverlap;
@@ -299,8 +123,15 @@ public class Registration {
 		int currentWidth;
 		int currentHeight;
 		for (int s = image1.scales.size() - 1; s >= 0; s--){
-			currentOverlap = getOverlapSOADforScaledImages(image1.scales.get(s), image2.scales.get(s), previousOverlap);
-			if (s != 0){
+			currentOverlap = getOverlapforScaledImages(image1.scales.get(s), image2.scales.get(s), previousOverlap);
+			if (previousWidth >= 200){
+				currentWidth = image1.scales.get(0).width();
+				currentHeight = image1.scales.get(0).height();
+				previousOverlap = resizeCoords(currentOverlap, previousWidth, previousHeight, currentWidth, currentHeight);
+				previousWidth = currentWidth;
+				previousHeight = currentHeight;
+				break;
+			}else if (s != 0){
 				currentWidth = image1.scales.get(s-1).width();
 				currentHeight = image1.scales.get(s-1).height();
 				previousOverlap = resizeCoords(currentOverlap, previousWidth, previousHeight, currentWidth, currentHeight);
@@ -309,15 +140,24 @@ public class Registration {
 			}
 		}
 		overlap = previousOverlap;
-		//System.out.println("overlap: [" + overlap[0] + ", " + overlap[1] + ", " + overlap[2] + ", " + overlap[3] + ", " + overlap[4] + ", " + overlap[5] + "]");
 		return overlap;
 	}
 	
-    private double[] getOverlapSOADforScaledImages(Mat mat1, Mat mat2, double[] prevOverlap){
+	/**
+	 * Finds the more accurate result for the overlap detected for the previous scale.
+	 * The algorithm is based on sum of absolute differences.
+	 * The image scales must be in the same size.
+	 * If there was not found any overlap before, set the prevOverlap = [].
+	 * @param mat1 the scaled image of the first image. 
+	 * @param mat2 the scaled image of the second image.
+	 * @param prevOverlap 
+	 * @return an array representing the overlap: x and y coordinate of the bottom right corner of the overlap in the first image,
+	 * x and y coordinate of the top left corner of the overlap in the second image, the width sand height of the overlap.
+	 */
+    private double[] getOverlapforScaledImages(Mat mat1, Mat mat2, double[] prevOverlap){
 		int width = mat1.width();
 		int height = mat1.height();
 
-		//an array representing the overlap:[bottomX of img1, bottomY of img1, topX of img2, topY of img2, width, height]
 		double[] overlap = new double[6];
 		
 		double diff = 1000d;
@@ -350,14 +190,13 @@ public class Registration {
 		int windowWidth;
 		int windowHeight;
 	
-		int pixelRange = 5;	//velikost okoli na kterem se hleda vylepseni vysledku
+		int pixelRange = 5;
 		
-		if (prevOverlap.length == 0){	//pokud zaciname (jeste neni k dispozici zadne vypocitane prekryti), prochazime vsechny mozne prekryvy
-										//tj zaciname od 1 prekryvajiciho se pixlu v levem hornim rohu
-			xWindowBoundsFrom = 1; 		//x-ova a y-ova souradnice pocatku prekryvani  
+		if (prevOverlap.length == 0){	
+			xWindowBoundsFrom = 1; 		  
 			yWindowBoundsFrom = 1;
 			
-			xWindowBoundsTo = width*2 - 1; //pocet kroku provedenych smerem po ose x a ose y
+			xWindowBoundsTo = width*2 - 1; 
 			yWindowBoundsTo = height*2 - 1;
 			
 			startBottomPosition1x = xWindowBoundsFrom;
@@ -369,7 +208,7 @@ public class Registration {
 			startTopPosition2x = scaledImage2.width()-startWindowWidth;
 			startTopPosition2y = scaledImage2.height()-startWindowHeight;
 						
-		}else {						//jinak vylepsujeme prekryti v rozmezi pixelRange pixelu
+		}else {
 			Mat left = getLeftImage(scaledImage1, scaledImage2, prevOverlap);
 			Mat upper = getUpperImage(scaledImage1, scaledImage2, prevOverlap);
 			
@@ -472,10 +311,6 @@ public class Registration {
 		
 		for(int h = yWindowBoundsFrom-1; h < yWindowBoundsTo; h++){
 			for (int w = xWindowBoundsFrom-1; w < xWindowBoundsTo; w++){
-				//Log.i(registration_tag, " H & W: " + height +", " + width);
-				//Log.i(registration_tag, "Range H: [" + (currentBottomPosition1y - windowHeight) +", " + currentBottomPosition1y + "]");
-				//Log.i(registration_tag, "Range W: [" + (currentBottomPosition1x - windowWidth) +", " + currentBottomPosition1x + "]");
-				
 				//get the area in mat1
 				Mat subMat1 = scaledImage1.submat(new Range(currentBottomPosition1y - windowHeight, currentBottomPosition1y), 
 												  new Range(currentBottomPosition1x - windowWidth, currentBottomPosition1x));
@@ -493,9 +328,8 @@ public class Registration {
 				double windowSize = windowHeight*windowWidth;
 				current_difference = current_difference/(windowSize);
 				
-				//if it is less than the min achieved value - keep it!
 				if ((current_difference < diff) && windowSize > (width*height/4)){
-					//I found better solution:
+					//we found a better solution:
 					diff = current_difference;
 					overlap[0] = currentBottomPosition1x;
 					overlap[1] = currentBottomPosition1y;
@@ -527,8 +361,18 @@ public class Registration {
 	}
 
 
+    /**
+     * Resizes the coordinates of an overlap between two scaled images.
+     * It is assumed that we lower scale to the higher  
+     * @param oldCoords the overlap information of the previous scale. the overlap is represented as following: x and y coordinate of the bottom right corner of the overlap in the first image,
+	 * x and y coordinate of the top left corner of the overlap in the second image, the width sand height of the overlap. 
+     * @param oldW the width of the previous scale. It is assumed that the previous width is larger than the current width.
+     * @param oldH the height of the previous scale. It is assumed that the previous height is larger than the current height. 
+     * @param w the width of the current scale. It is assumed that the previous width is larger than the current width.
+     * @param h the height of the current scale. It is assumed that the previous height is larger than the current height.
+     * @return
+     */
 	private double[] resizeCoords(double[] oldCoords, int oldW, int oldH, int w, int h){
-		//an array representing the overlap:[bottomX of img1, bottomY of img1, topX of img2, topY of img2, width, height]
 		double[] coords = new double[6];
 		
 		coords[0] = (int)(oldCoords[0]/oldW*w);

@@ -2,56 +2,60 @@ package com.vasova.bachelorproject;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
-import org.opencv.core.Mat;
-
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLU;
 
+/**
+ * A class implementing the renderer interface.
+ * The Graphics_Renderer is responsible for creating and drawing the scene of a 3D model of the disparity map.  
+ * @author viktorievasova
+ *
+ */
 public class Graphics_Renderer implements  GLSurfaceView.Renderer{
-	//private Square 		square;
-	private MeshModel mesh;
+	private DisparityModel mesh;
 	
-	public float angleX = 0f;
 	public float angleY = 0f;
-	
-	private float angleDelta = 0f;//0.4f;
-	
+		
 	public float deltaX;
 	public float deltaY;
 	
-	public Graphics_Renderer(Mat origImg, Mat dispImg) {
-		//this.context = context;
-		this.mesh = new MeshModel(origImg, dispImg);
+	/**
+	 * Constructor of this class. Is called when the instance of this class is created. 
+	 * @param vertices an array of coordinates of vertices that are visualized. Each sequence of three floats represents the x, y and z coordinates of one point.
+	 * Each sequence of nine floats represents one triangle in a space.
+	 * @param colors an array of RGBA values of a color of a vertex. A sequence of four floats corresponds to a RGBA color of one vertex in float[] vertices.
+	 */
+	public Graphics_Renderer(float[] vertices, float[] colors) {
+		this.mesh = new DisparityModel(vertices, colors);
 	}
 	
-	public void releaseMeshBuffers(){
-		if (this.mesh != null){
-			this.mesh.releaseBuffers();
-		}
+	/**
+	 * This method is called when the data for rendering a disparity map should be changed.
+	 * It creates a new DisparityModel and draws it.
+	 * @param vertices an array of coordinates of vertices that are visualized. Each sequence of three floats represents the x, y and z coordinates of one point.
+	 * Each sequence of nine floats represents one triangle in a space.
+	 * @param colors an array of RGBA values of a color of a vertex. A sequence of four floats corresponds to a RGBA color of one vertex in float[] vertices.
+	 */
+	public void setNewData(float[] vertices, float[] colors){
+		this.mesh = new DisparityModel(vertices, colors);
 	}
 	
 	@Override
 	public void onDrawFrame(GL10 gl) {
-	        
-	        
-		// clear Screen and Depth Buffer
 		gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
-
-		// Reset the Modelview Matrix
 		gl.glLoadIdentity();
-
-		// Drawing
-		gl.glTranslatef(0.0f, 0.0f, -1.0f);
-		
+		gl.glTranslatef(0.0f, 0.0f, 0.0f);
 		gl.glRotatef(angleY, 0f, 1f, 0f); 
-		gl.glRotatef(angleX, 1f, 0f, 0f);				
 		mesh.draw(gl);
 	}
 
 	@Override
 	public void onSurfaceChanged(GL10 gl, int width, int height) {
-		GLES20.glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
+		GLES20.glClearColor(0.2f, 0.5f, 0.65f, 1.0f);
+		GLES20.glEnable(GLES20.GL_DEPTH_TEST);
+		GLES20.glDepthFunc(GLES20.GL_LEQUAL);
+		GLES20.glDepthMask(true);
 		
 		if(height == 0) {
 			height = 1;
@@ -60,10 +64,8 @@ public class Graphics_Renderer implements  GLSurfaceView.Renderer{
 		gl.glViewport(0, 0, width, height);
 		gl.glMatrixMode(GL10.GL_PROJECTION);
 		gl.glLoadIdentity();
-
-		//Calculate The Aspect Ratio Of The Window
-		//GLU.gluPerspective(gl, 45.0f, (float)width / (float)height, 0.1f, 100.0f);
-        GLU.gluPerspective(gl, 25.0f,  (float)width / (float)height, 1, 100);
+		
+		GLU.gluPerspective(gl, 25.0f,  (float)width / (float)height, 1, 100);
         GLU.gluLookAt(gl, 0f, 0f, 16f, 0.0f, 0.0f, 0f, 0.0f, 1.0f, 1.0f);
 
 		gl.glMatrixMode(GL10.GL_MODELVIEW);
@@ -73,13 +75,5 @@ public class Graphics_Renderer implements  GLSurfaceView.Renderer{
 	@Override
 	public void onSurfaceCreated(GL10 gl, EGLConfig config) {
 		
-	}
-
-	public void switchMode(){
-		if (angleDelta == 0.4f){
-			angleDelta = 0f;
-		}else if (angleDelta == 0f){
-			angleDelta = 0.4f;
-		}
-	}
+	}	
 }

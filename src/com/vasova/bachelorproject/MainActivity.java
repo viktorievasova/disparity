@@ -1,38 +1,32 @@
 package com.vasova.bachelorproject;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import org.opencv.android.BaseLoaderCallback;
-import org.opencv.android.CameraBridgeViewBase;
-import org.opencv.android.LoaderCallbackInterface;
-import org.opencv.android.OpenCVLoader;
-import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener;
+import org.opencv.android.Utils;
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Size;
 import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
-import com.vasova.bachelorproject.Adapter.GridImage;
 import com.vasova.bachelorproject.R;
 import com.vasova.bachelorproject.MainActivity;
 
-import android.graphics.Point;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.hardware.Camera;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.hardware.Camera.PictureCallback;
+import android.hardware.Camera.ShutterCallback;
 import android.os.Bundle;
 import android.os.Environment;
 import android.app.Activity;
@@ -41,37 +35,30 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
-import android.widget.GridView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
-public class MainActivity extends Activity implements CvCameraViewListener, SensorEventListener{
+/**
+ * This activity is the main activity of this application.
+ * It handles the camera and the process of taking pictures.
+ * 
+ * @author viktorievasova
+ *
+ */
+public class MainActivity extends Activity implements SensorEventListener{
 
 	private static final String  TAG = "BachelorProject::MainActivity";
-
-	public static ArrayList<String> galleryList;
-    public String dataFileName = "galleryData";
-    public static ArrayList<GridImage> imagesDB;
-
 	public static boolean inBackground = false;
-	
-    private MenuItem             mItemPreviewRGBA;
-    private MenuItem			 mItemGallery;
-    private Mat                  mRgba;
-    private Mat                  mIntermediateMat;
-
-    private Mat	takenPicture;
     private final String messageTakenPicture = "Your picture was saved";
-	
-    private boolean isCameraRunning;
-    
-    private CameraBridgeViewBase mOpenCvCameraView;
-
 	private boolean autoCaptureON = false;
 	private boolean autoCapturingStarted = false;
 	private SensorManager sensorManager;
@@ -79,47 +66,31 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 	private boolean acc_initialized;
 	private float mLastX, mLastY;
 	private final float NOISE = (float) 1.0;
-	
 	private Timer timer;
     private int delay = 400;
-    
+    private CameraPreview preview;
+    private Camera camera;
 	
     public MainActivity() {
         Log.i(TAG, "Instantiated new " + this.getClass());
     }
     
-    private BaseLoaderCallback  mLoaderCallback = new BaseLoaderCallback(this) {
-        @Override
-        public void onManagerConnected(int status) {
-            switch (status) {
-                case LoaderCallbackInterface.SUCCESS:
-                {
-                    Log.i(TAG, "OpenCV loaded successfully");
-                    mOpenCvCameraView.enableView();
-                } break;
-                default:
-                {
-                    super.onManagerConnected(status);
-                } break;
-            }
-        }
-    };
-    
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		Log.i(TAG, "onCreate");
 		inBackground = false;
-        /*inicializace noveho seznamu vyfocenych obrazku a nacteni dat*/
-		imagesDB = new ArrayList<GridImage>();
-		galleryList = new ArrayList<String>();
-		readData();
+		
+		DatabaseHandler db = ((BachalorProjectApplication)getApplication()).db;
+		db.close();
         
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
         
-        mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.camera_view);
-        mOpenCvCameraView.setCvCameraViewListener(this);
+        preview = new CameraPreview(this, (SurfaceView)findViewById(R.id.surfaceView));
+		preview.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+		((RelativeLayout) findViewById(R.id.preview)).addView(preview);
+		preview.setKeepScreenOn(true);
 	}
 	
 	 @Override
@@ -127,17 +98,21 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
     {
 		 Log.i(TAG, "onPause");
 		 inBackground = true;
-		 if (mOpenCvCameraView != null)
-            mOpenCvCameraView.disableView();
+		 
 		 if (timer != null){
 			 timer.cancel();
 			 timer = null;
 		 }
-		 
-		 //pri zavoleni onPause() se vypne automaticke snimani obrazu
 		 if(sensorManager != null){
 			 sensorManager.unregisterListener(this);
 		 }
+		 
+		 if(camera != null) {
+			camera.stopPreview();
+			preview.setCamera(null);
+			camera.release();
+			camera = null;
+		}
 		 
 		 Button startCapturingButton = (Button)findViewById(R.id.startCapturingButton);
 		 startCapturingButton.setSelected(false);
@@ -153,28 +128,27 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
     {
     	Log.i(TAG, "onResume");
     	super.onResume();
-    	
+    	camera = Camera.open();
+		camera.startPreview();
+		preview.setCamera(camera);
         inBackground = false;
-        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_3, this, mLoaderCallback);
     }
     
     
     @Override
-    public void onStop() {
-    	writeData();
-        
-        if (mOpenCvCameraView != null){
-            mOpenCvCameraView.disableView();
-        }
+    public void onStop() {        
         super.onStop();
     }
     
     public void onAccuracyChanged(Sensor sensor, int accuracy){
     	
     }
-    
-    /*zmeni-li se poloha zarizeni, anuluje se bezici timer, naplanuje se a spusti novy*/
-	public void onSensorChanged(SensorEvent event){
+    /**
+     * This method handles the auto-capturing.
+     * It observes the motion of the device.
+	 * When the position of the device is still for an approximately 0.5 s, the picture is taken.
+     */
+    public void onSensorChanged(SensorEvent event){
     	if (autoCaptureON){
 	    	if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
 	    		float x = event.values[0];
@@ -233,6 +207,10 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
     	}
     }
 	
+    /**
+     * Changes the visibility of the graphical user interface when clicking a button.
+     * @param view the view.
+     */
 	public void autoCaptureStateChanged(View view){
     	ToggleButton autoCaptureButton = (ToggleButton)view;
     	this.autoCaptureON = autoCaptureButton.isChecked();
@@ -258,12 +236,16 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
     	}
     }
 	
+	/**
+	 * This method starts the auto-capturing process.
+	 * It activates the sensors manager to observe the motion of the device.
+	 * @param view
+	 */
 	public void start_stopAutoCapturing(View view){
     	TextView autocapturing_textview = (TextView)findViewById(R.id.startCapturing_textView);
     	Button startCapturingButton = (Button)findViewById(R.id.startCapturingButton);
     	if (!autoCapturingStarted){
-	    	/*vytvoreni SensorManageru pro typ akcelerometru k detekci pohybu zarizeni*/
-	        acc_initialized = false;
+	    	acc_initialized = false;
 			sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 			accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 			sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
@@ -283,158 +265,127 @@ public class MainActivity extends Activity implements CvCameraViewListener, Sens
 		takePicture();
 	}
 	     
-    /*metoda, ktera snima obrazek*/
+    /**
+     * This method handles taking the picture.
+     * It saves the picture on the SD Card and updates the records in the SQLIte database.
+     */
     private void takePicture(){
-    	Log.d(TAG, "method to take a picture was started");
-    	if (GalleryActivity.inForeground || inBackground ||  !isCameraRunning){
+    	if (GalleryActivity.inForeground || inBackground ){
     		return;
     	}
-    	
-    	if (takenPicture != null && isSDCARDAvailable()){
-    		try{
-    			//conversion bgr->rgb
-    			Mat pictureToWrite = new Mat();
-    			Imgproc.cvtColor(takenPicture, pictureToWrite, Imgproc.COLOR_BGRA2RGBA);
-    			if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT){
-	    			Mat dst = new Mat();
-	    			Core.transpose(pictureToWrite, dst);
-	    			Core.flip(dst, dst, 1);
-	    			pictureToWrite = dst;
-    			}
-    			/*generovani cesty k souboru, pripadne vytvoreni souboru, pokud neexistuje*/
-    			String dirName = "Gallery";
-	    		String dirPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/" + dirName;
-    			//String dirPath = "/mnt/sdcard/Pictures" + "/" + dirName;
-	    		File galleryDir = new File(dirPath);
-	    		
-	    		if (!galleryDir.exists()){
-	    			Log.d("bachelor project", "creating directory for gallery");
-	    			if(!galleryDir.mkdirs()){
-	    				Log.d("bachelor project", "failed to create directory");
-	    			}
+    	if(!autoCapturingStarted){
+	    	Toast.makeText(this, messageTakenPicture, Toast.LENGTH_SHORT).show();
+	    }else{
+	    	runOnUiThread(new Runnable() {
+	    		public void run(){
+	    			Toast.makeText(getApplicationContext(), messageTakenPicture, Toast.LENGTH_SHORT).show();    
 	    		}
-	    		/*vytvoreni nazvu pro ukladany soubor a zapsani souboru*/
-	    		String timeOfTakingPicture = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-	    		String filePath = dirPath + "/img" + timeOfTakingPicture + ".jpg";
-	    		if (Highgui.imwrite(filePath, pictureToWrite)){
-		    		Log.d(TAG, "image saved with path: " + filePath);
-		    		addImgToList(filePath);
-		    		if(!autoCapturingStarted){
-		    			Toast.makeText(this, messageTakenPicture, Toast.LENGTH_SHORT).show();
-		    		}else{
-		    			runOnUiThread(new Runnable() {
-		    			   public void run(){
-		    			      Toast.makeText(getApplicationContext(), messageTakenPicture, Toast.LENGTH_SHORT).show();    
-		    			   }
-		    			}); 
-		    		}
-	                
-	    		}
-    		}catch(Exception e){
-    			Log.d(TAG, "an error occured while writting the file. " + "exception:  " + e);
-    		}
-    	}
+	    	}); 
+	    }
+	    camera.takePicture(shutterCallback, rawCallback, jpegCallback);
     }
     
     public static boolean isSDCARDAvailable(){
     	return Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)? true :false;
 	}
 
-    public void onCameraViewStarted(int width, int height) {
-        mRgba = new Mat(height, width, CvType.CV_8UC4);
-        mIntermediateMat = new Mat(height, width, CvType.CV_8UC4);
-        isCameraRunning = true;
-    }
-
-    public void onCameraViewStopped() {
-    	isCameraRunning = false;
-    	mRgba.release();
-        mIntermediateMat.release();
-    }
-
-    public Mat onCameraFrame(Mat inputFrame) {
-        inputFrame.copyTo(mRgba);
-        takenPicture = inputFrame;
-        return mRgba;
-    }
-
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        Log.i(TAG, "called onCreateOptionsMenu");
-        mItemGallery = menu.add("Gallery");
-        return true;
-    }
-
+	public boolean onCreateOptionsMenu(Menu menu){
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.activity_main, menu);
+		return true;
+	}
+    
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         Log.i(TAG, "called onOptionsItemSelected; selected item: " + item);
-        if (item == mItemPreviewRGBA)
-        {
-            mOpenCvCameraView.SetCaptureFormat(Highgui.CV_CAP_ANDROID_COLOR_FRAME_RGBA);
-        }
-        else if (item == mItemGallery){
+        
+        if (item.getItemId() == R.id.gallery_menu_item){
         	Intent intent = new Intent(this, GalleryActivity.class);
+        	startActivity(intent);
+        }else if (item.getItemId() == R.id.sample_data_menu_item){
+        	Intent intent = new Intent(this, SampleDataGalleryActivity.class);
         	startActivity(intent);
         }
 
         return true;
     }
     
-    
-    private void addImgToList(String imgPath){
-    	ArrayList<String> tmpList = new ArrayList<String>();
-    	tmpList.add(imgPath);
-    	for (int i = 0; i < galleryList.size(); i++){
-    		tmpList.add(galleryList.get(i));
-    	}
-    	galleryList = tmpList;
-    }
-    
-    private void writeData(){
-		try{
-			FileOutputStream fos = openFileOutput(dataFileName, MODE_PRIVATE);
-			BufferedWriter bffw = new BufferedWriter(new OutputStreamWriter(fos));
-			
-			String line;
-			for (int i = 0; i < galleryList.size(); i++){
-				line = galleryList.get(i) + "\n";
-				if(line.equals("gallery is empty")){
-					continue;
-				}else{
-					bffw.write(line);
-				}
-			}
-			
-			bffw.close();
-			fos.close();
-			
-		}catch(Exception e){
-			Log.d("CameraApp","failed to write data");
-		}
+	private void resetCam() {
+		camera.startPreview();
+		preview.setCamera(camera);
 	}
-	
-	private void readData(){
-		try{
-			FileInputStream fis = openFileInput(dataFileName);
-			
-			galleryList = new ArrayList<String>();
-			BufferedReader bffr = new BufferedReader(new InputStreamReader(fis));
-			
-			String line;
-			String filePath;
-			while ((line = bffr.readLine()) != null){
-				filePath = line;
-				File f = new File(filePath);
-				if (f.exists()){
-					galleryList.add(filePath);	
-				}
-			}
-			bffr.close();
-			fis.close();
-		}catch(Exception e){
-			Log.d(TAG, "exception " + e);
-		}
-	}
-	
 
+	ShutterCallback shutterCallback = new ShutterCallback() {
+		public void onShutter() {
+		}
+	};
+
+	PictureCallback rawCallback = new PictureCallback() {
+		public void onPictureTaken(byte[] data, Camera camera) {
+		}
+	};
+    
+	int getOrientation(){
+		return this.getResources().getConfiguration().orientation;
+	}
+	
+	PictureCallback jpegCallback = new PictureCallback() {
+		public void onPictureTaken(byte[] data, Camera camera) {
+			String dirName, filePath;
+			try {
+				// Write to SD Card
+				
+				dirName = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/Gallery";
+				String timeOfTakingPicture = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+				filePath = dirName + "/img" + timeOfTakingPicture + ".jpg";
+	    		File galleryDir = new File(dirName);
+				
+	    		if (!galleryDir.exists()){
+	    			Log.d("bachelor project", "creating directory for gallery");
+	    			if(!galleryDir.mkdirs()){
+	    				Log.d("bachelor project", "failed to create directory");
+	    			}
+	    		}
+				
+				//Log.i(TAG, "new image with path " + filePath);
+				InputStream inputstream = new ByteArrayInputStream(data);
+		        //Bitmap bmp = BitmapFactory.decodeStream(inputstream);
+				BitmapFactory.Options options = new BitmapFactory.Options();
+				options.inSampleSize = 2;
+				Bitmap bmp = BitmapFactory.decodeStream(inputstream, null, options);
+
+		       
+		        
+				Mat m  = new Mat();
+				Utils.bitmapToMat(bmp, m);
+				Imgproc.cvtColor(m, m, Imgproc.COLOR_BGRA2RGBA);
+				
+				if (m.width() > 1100){
+					double width = 1100;
+					double height = width/m.width() * m.height();
+					Imgproc.resize(m, m, new Size(width, height));
+				}
+				
+				if (getOrientation() == Configuration.ORIENTATION_PORTRAIT){
+	                Core.flip(m.t(), m, 1);
+				}
+				Highgui.imwrite(filePath, m);
+				
+				//add img path to database
+				DatabaseHandler db = ((BachalorProjectApplication)getApplication()).db;
+				db.addImage(new ImageDBRecord(filePath));
+				db.close();
+				
+				resetCam();
+				
+			} catch (Exception e) {
+				Log.i(TAG, "exception: " + e.getMessage());
+			} finally {
+			}
+			Log.d(TAG, "onPictureTaken - jpeg");
+		}
+	};
+	
+	
 }
